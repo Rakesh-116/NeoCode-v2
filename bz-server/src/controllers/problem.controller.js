@@ -101,11 +101,11 @@ const getAllSubmissionsController = async (req, res) => {
     SELECT s.*, p.title AS problem_title
     FROM submissions s
     JOIN problem p ON s.problem_id = p.id
-    WHERE user_id = $1
+    WHERE s.user_id = $1 AND s.course_id IS NULL
     ORDER BY s.submission_time DESC
     LIMIT $2 OFFSET $3
   `;
-  const getTotalSubmissionsQuery = `SELECT COUNT(*) FROM submissions WHERE user_id = $1`;
+  const getTotalSubmissionsQuery = `SELECT COUNT(*) FROM submissions WHERE user_id = $1 AND course_id IS NULL`;
 
   try {
     const [submissionsResult, totalCountResult] = await Promise.all([
@@ -144,12 +144,35 @@ const getAllSubmissionsController = async (req, res) => {
 const getAllProblemSubmissionsController = async (req, res) => {
   const problemId = req.params.id;
   const userId = req.userId;
+  const { courseId } = req.query;
 
   try {
-    const result = await pool.query(
-      `SELECT * FROM submissions WHERE problem_id = $1 AND user_id = $2 ORDER BY submission_time DESC`,
-      [problemId, userId]
-    );
+    let query;
+    let queryParams;
+
+    if (courseId) {
+      // Get submissions from the submissions table filtered by courseId
+      query = `
+        SELECT s.id, s.user_id, s.problem_id, s.code, s.language, 
+               s.verdict, s.submission_time, s.test_results, s.course_id, s.execution_time
+        FROM submissions s
+        WHERE s.problem_id = $1 AND s.user_id = $2 AND s.course_id = $3 
+        ORDER BY s.submission_time DESC
+      `;
+      queryParams = [problemId, userId, courseId];
+    } else {
+      // Get submissions from submissions table where course_id is NULL (regular submissions)
+      query = `
+        SELECT s.id, s.user_id, s.problem_id, s.code, s.language, 
+               s.verdict, s.submission_time, s.test_results, s.course_id, s.execution_time
+        FROM submissions s
+        WHERE s.problem_id = $1 AND s.user_id = $2 AND s.course_id IS NULL 
+        ORDER BY s.submission_time DESC
+      `;
+      queryParams = [problemId, userId];
+    }
+
+    const result = await pool.query(query, queryParams);
 
     return res.status(200).json({
       success: true,

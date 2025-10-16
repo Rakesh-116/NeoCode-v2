@@ -52,19 +52,75 @@ const ProblemPage = () => {
     code: null,
     language: null,
   });
+  const [courseDetails, setCourseDetails] = useState(null);
+  const [courseProblems, setCourseProblems] = useState([]);
+  const [currentProblemIndex, setCurrentProblemIndex] = useState(-1);
 
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const submissionId = searchParams.get("submission_id");
+  const courseId = searchParams.get("courseId");
+  const tabFromUrl = searchParams.get("tab");
+
+  // Initialize tab from URL on component mount
+  useEffect(() => {
+    if (tabFromUrl === "submissions") {
+      setSelectRequest(selectRequestConstants.submissions);
+    } else if (tabFromUrl === "description") {
+      setSelectRequest(selectRequestConstants.description);
+    } else if (!tabFromUrl) {
+      // If no tab parameter in URL, set default to description and update URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("tab", "description");
+      setSearchParams(newSearchParams, { replace: true });
+    }
+  }, [tabFromUrl]);
 
   useEffect(() => {
     if (selectRequest === selectRequestConstants.description) fetchProblem();
     else if (selectRequest === selectRequestConstants.submissions) {
       fetchSubmissions();
     }
-  }, [id, selectRequest]);
+  }, [id, selectRequest, courseId]);
+
+
+
+  // Fetch course details if courseId is present
+  useEffect(() => {
+    if (courseId) {
+      fetchCourseDetails();
+    }
+  }, [courseId, id]); // Add 'id' to dependency array so it refetches when problem changes
+
+
+
+  const fetchCourseDetails = async () => {
+    const token = Cookies.get("neo_code_jwt_token");
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE_URL}/api/courses/${courseId}`, { headers });
+      
+      if (response.data.success) {
+        setCourseDetails(response.data.course);
+        setCourseProblems(response.data.course.problems || []);
+        
+        // Find current problem index in the course (convert both to string for comparison)
+        const problemIndex = response.data.course.problems?.findIndex(p => 
+          String(p.problem_id) === String(id)
+        ) ?? -1;
+        
+        console.log('Setting problem index:', problemIndex, 'for problem ID:', id);
+        console.log('Course problems:', response.data.course.problems?.map(p => ({id: p.problem_id, title: p.problem_title})));
+        
+        setCurrentProblemIndex(problemIndex);
+      }
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+    }
+  };
 
   const fetchProblem = async () => {
     setApiStatus(apiStatusConstants.inProgress);
@@ -132,12 +188,15 @@ const ProblemPage = () => {
 
     const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/problem/${id}/get-all-submissions`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      // If courseId is present, use course-specific endpoint
+      let endpoint = `${API_BASE_URL}/api/problem/${id}/get-all-submissions`;
+      if (courseId) {
+        endpoint += `?courseId=${courseId}`;
+      }
+
+      const response = await axios.get(endpoint, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log(response.data.submissionDetails);
       setSubmissionList(response.data.submissionDetails);
       setSubmissionStatus(submissionStatusConstant.success);
@@ -229,11 +288,40 @@ const ProblemPage = () => {
   };
 
   const openEditor = (code, language) => {
-    setSelectRequest(selectRequestConstants.description);
+    switchTab(selectRequestConstants.description);
     setOpenEditorData({
       code,
       language,
     });
+  };
+
+  // Helper function to update both state and URL when switching tabs
+  const switchTab = (tabType) => {
+    setSelectRequest(tabType);
+    
+    // Update URL parameters
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (tabType === selectRequestConstants.description) {
+      newSearchParams.set("tab", "description");
+    } else if (tabType === selectRequestConstants.submissions) {
+      newSearchParams.set("tab", "submissions");
+    }
+    setSearchParams(newSearchParams, { replace: true });
+  };
+
+  // Navigation helpers for course problems
+  const navigateToPreviousProblem = () => {
+    if (currentProblemIndex > 0 && courseProblems.length > 0) {
+      const prevProblem = courseProblems[currentProblemIndex - 1];
+      navigate(`/problems/${prevProblem.problem_id}?courseId=${courseId}&tab=description`);
+    }
+  };
+
+  const navigateToNextProblem = () => {
+    if (currentProblemIndex < courseProblems.length - 1 && courseProblems.length > 0) {
+      const nextProblem = courseProblems[currentProblemIndex + 1];
+      navigate(`/problems/${nextProblem.problem_id}?courseId=${courseId}&tab=description`);
+    }
   };
 
   const onMount = (editor) => {
@@ -270,6 +358,19 @@ const ProblemPage = () => {
             <h3 className="my-2 text-2xl text-white font-bold">
               {problem.title}
             </h3>
+            {/* {courseId && (
+              <div className="mb-4 p-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                <p className="text-blue-400 text-sm flex items-center">
+                  📚 You're solving this problem as part of a course
+                  <button
+                    onClick={() => navigate(`/courses/${courseId}`)}
+                    className="ml-2 text-blue-300 hover:text-blue-200 underline"
+                  >
+                    Back to Course
+                  </button>
+                </p>
+              </div>
+            )} */}
             <span
               className={`p-[1px] px-[4px] font-bold text-xs rounded-md ${
                 difficultyLevelsProperties[problem.difficulty.toLowerCase()]
@@ -389,6 +490,7 @@ const ProblemPage = () => {
                   }
                   solution={problem.solution}
                   openEditorData={openEditorData}
+                  courseId={courseId}
                 />
               </div>
             )}
@@ -399,7 +501,7 @@ const ProblemPage = () => {
           <div className="w-[30%] my-4 h-[650px] overflow-auto pr-4">
             <div className="border-[1px] border-slate-500 rounded-lg py-6 px-4">
               <h1 className="text-white font-bold text-lg">
-                Submissions for: {problem.title}
+                {courseId ? "Course Submissions" : "Submissions"} for: {problem.title}
               </h1>
             </div>
             <div className="flex flex-col items-center">
@@ -530,7 +632,57 @@ const ProblemPage = () => {
     <>
       <Header />
       <div className="w-full p-[2%] bg-black/95 min-h-screen pt-28">
-        <div className="bg-slate-700 p-[4px] mb-2 rounded-xl w-[240px] flex justify-between relative overflow-hidden">
+        {/* Breadcrumb Navigation */}
+        <nav className="mb-4">
+          <ol className="flex items-center space-x-2 text-sm">
+            {courseId ? (
+              // Course context navigation
+              <>
+                <li>
+                  <button
+                    onClick={() => navigate('/courses')}
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Courses
+                  </button>
+                </li>
+                <li className="text-white/50">›</li>
+                <li>
+                  <button
+                    onClick={() => navigate(`/courses/${courseId}`)}
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    {courseDetails?.title || 'Course'}
+                  </button>
+                </li>
+                <li className="text-white/50">›</li>
+                <li className="text-white/70 truncate max-w-xs">
+                  {problem?.title || 'Loading...'}
+                </li>
+              </>
+            ) : (
+              // Regular problems navigation
+              <>
+                <li>
+                  <button
+                    onClick={() => navigate('/problemset')}
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Problem Set
+                  </button>
+                </li>
+                <li className="text-white/50">›</li>
+                <li className="text-white/70 truncate max-w-xs">
+                  {problem?.title || 'Loading...'}
+                </li>
+              </>
+            )}
+          </ol>
+        </nav>
+
+        <div className="flex items-center justify-between mb-2">
+          {/* Description/Submissions Tabs */}
+          <div className="bg-slate-700 p-[4px] rounded-xl w-[240px] flex justify-between relative overflow-hidden">
           <div
             className={`absolute top-1 bottom-1 w-[48%] bg-blue-600 rounded-2xl transition-transform duration-300 ${
               selectRequest === selectRequestConstants.submissions
@@ -541,17 +693,38 @@ const ProblemPage = () => {
 
           <button
             className="p-[10px] rounded-2xl text-white font-semibold  z-10 w-[50%]"
-            onClick={() => setSelectRequest(selectRequestConstants.description)}
+            onClick={() => switchTab(selectRequestConstants.description)}
           >
             Description
           </button>
 
           <button
             className="p-[10px] rounded-2xl text-white font-semibold z-10 w-[50%]"
-            onClick={() => setSelectRequest(selectRequestConstants.submissions)}
+            onClick={() => switchTab(selectRequestConstants.submissions)}
           >
             Submissions
           </button>
+          </div>
+
+          {/* Simple Prev/Next Navigation for Course Problems */}
+          {courseId && courseProblems.length > 1 && currentProblemIndex >= 0 && (
+            <div className="flex space-x-2">
+              <button
+                onClick={navigateToPreviousProblem}
+                disabled={currentProblemIndex <= 0}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 text-white rounded-lg transition-colors"
+              >
+                Prev
+              </button>
+              <button
+                onClick={navigateToNextProblem}
+                disabled={currentProblemIndex >= courseProblems.length - 1}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 text-white rounded-lg transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
         {selectRequest === selectRequestConstants.description ? (
           <>

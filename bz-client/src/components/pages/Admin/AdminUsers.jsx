@@ -55,14 +55,22 @@ const UserDataCard = ({ userDetails, onRequestDelete }) => {
           </p>
         </div>
 
-        <div className="flex space-x-4 items-start">
+        <div className="flex space-x-2 items-start">
           {isOpen && (
-            <button className="border border-green-400 px-2 py-1 mx-2 rounded-md text-green-400 text-[12px]">
-              Edit Role to {userDetails.role === "admin" ? "User" : "Admin"}
-            </button>
+            <>
+              <button className="border border-green-400 px-2 py-1 rounded-md text-green-400 text-[12px] hover:bg-green-400/10 transition-colors">
+                Edit Role to {userDetails.role === "admin" ? "User" : "Admin"}
+              </button>
+              <button
+                onClick={() => window.open(`/admin/users/analysis/${userDetails.id}`, '_blank')}
+                className="border border-blue-400 px-2 py-1 rounded-md text-blue-400 text-[12px] hover:bg-blue-400/10 transition-colors"
+              >
+                View Analysis
+              </button>
+            </>
           )}
           <button
-            className="text-red-500 border border-red-500 rounded-lg p-1 hover:text-red-600 transition-colors duration-300 self-start"
+            className="text-red-500 border border-red-500 rounded-lg p-1 hover:text-red-600 hover:bg-red-500/10 transition-colors duration-300 self-start"
             onClick={() =>
               onRequestDelete(
                 userDetails.id,
@@ -74,7 +82,7 @@ const UserDataCard = ({ userDetails, onRequestDelete }) => {
           </button>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="text-white border border-white rounded-lg p-1 hover:text-white transition-colors duration-300 self-start"
+            className="text-white border border-white rounded-lg p-1 hover:text-white hover:bg-white/10 transition-colors duration-300 self-start"
           >
             <FaCaretDown
               className={`transform transition-transform duration-300 ${

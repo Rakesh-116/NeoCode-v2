@@ -125,24 +125,21 @@ const fetchUser = async (req, res) => {
 const getProblemAnalysisController = async (req, res) => {
   const userId = req.userId;
 
-  const problemAnalysisQuery = `
-    SELECT 
-      s.problem_id, 
-      s.verdict
-    FROM submissions s
-    WHERE s.user_id = $1
-    ORDER BY s.submission_time DESC;
-  `;
-
   try {
-    const result = await pool.query(problemAnalysisQuery, [userId]);
+    // Basic submissions analysis - simplified query to avoid casting issues
+    const problemAnalysisQuery = `
+      SELECT 
+        s.problem_id, 
+        s.verdict,
+        p.score,
+        p.difficulty
+      FROM submissions s
+      JOIN problem p ON s.problem_id = p.id
+      WHERE s.user_id = $1
+      ORDER BY s.submission_time DESC;
+    `;
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No submissions found for the user",
-      });
-    }
+    const result = await pool.query(problemAnalysisQuery, [userId]);
 
     // Initialize counters
     let verdictCounts = {
@@ -151,11 +148,28 @@ const getProblemAnalysisController = async (req, res) => {
       rte: 0,
       tle: 0,
     };
+    
+    let totalNeoCodePoints = 0;
+    const solvedProblems = new Set();
 
-    // Count each verdict type
-    for (const { verdict } of result.rows) {
+    // Count each verdict type and calculate NeoCode points
+    for (const row of result.rows) {
+      const { verdict, problem_id, score } = row;
+      
       if (verdict === "ACCEPTED") {
         verdictCounts.accepted += 1;
+        // Add points only once per problem (avoid duplicate points for same problem)
+        if (!solvedProblems.has(problem_id)) {
+          // Handle score regardless of its type
+          let points = 0;
+          if (typeof score === 'string') {
+            points = parseInt(score) || 0;
+          } else if (typeof score === 'number') {
+            points = score;
+          }
+          totalNeoCodePoints += points;
+          solvedProblems.add(problem_id);
+        }
       } else if (verdict === "WRONG ANSWER") {
         verdictCounts.wrongAnswer += 1;
       } else if (verdict === "RTE") {
@@ -165,16 +179,49 @@ const getProblemAnalysisController = async (req, res) => {
       }
     }
 
+    // Simple category points fetching with error handling
+    let categoryPoints = [];
+    let totalCategoryPoints = 0;
+    
+    try {
+      // Check if user_category_points table exists and has data
+      const categoryPointsQuery = `
+        SELECT category, total_points, problems_solved
+        FROM user_category_points
+        WHERE user_id = $1
+        ORDER BY total_points DESC;
+      `;
+      
+      const categoryPointsResult = await pool.query(categoryPointsQuery, [userId]);
+      
+      if (categoryPointsResult.rows) {
+        categoryPoints = categoryPointsResult.rows.map(row => ({
+          category: row.category || '',
+          total_points: parseInt(row.total_points) || 0,
+          problems_solved: parseInt(row.problems_solved) || 0
+        }));
+        
+        totalCategoryPoints = categoryPoints.reduce((sum, cat) => sum + cat.total_points, 0);
+      }
+    } catch (categoryError) {
+      console.error("Category points error (table might not exist):", categoryError.message);
+      // Continue without category points - this is expected if tables don't exist yet
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Verdict counts fetched successfully",
+      message: "User analysis fetched successfully",
       verdictCounts,
+      totalNeoCodePoints,
+      problemsSolved: solvedProblems.size,
+      categoryPoints,
+      totalCategoryPoints,
     });
   } catch (error) {
     console.error("Error fetching problem analysis:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "Internal server error: " + error.message,
     });
   }
 };

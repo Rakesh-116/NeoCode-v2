@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
 
 import Header from "../Header.jsx";
-import { categoriesList } from "../../Common/constants.js";
 
 const Courses = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    category: "",
-    search: ""
+    search: searchParams.get('search') || ""
   });
 
   const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
@@ -20,7 +19,6 @@ const Courses = () => {
   const fetchCourses = async () => {
     try {
       const params = new URLSearchParams();
-      if (filters.category) params.append('category', filters.category);
       if (filters.search) params.append('search', filters.search);
       
       const response = await axios.get(`${API_BASE_URL}/api/courses?${params}`);
@@ -32,12 +30,30 @@ const Courses = () => {
     }
   };
 
+  // Sync filters with URL params on mount and URL changes
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search') || "";
+    setFilters({
+      search: searchFromUrl
+    });
+  }, [searchParams]);
+
   useEffect(() => {
     fetchCourses();
   }, [filters]);
 
   const handleFilterChange = (key, value) => {
-    setFilters({ ...filters, [key]: value });
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    
+    // Update URL params
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (value && value.trim()) {
+      newSearchParams.set(key, value);
+    } else {
+      newSearchParams.delete(key);
+    }
+    setSearchParams(newSearchParams);
   };
 
   const getDifficultyColor = (totalPoints) => {
@@ -53,28 +69,15 @@ const Courses = () => {
         <div className="mb-8">
           <h1 className="text-white text-3xl font-bold mb-6">Available Courses</h1>
           
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          {/* Search Filter */}
+          <div className="mb-6">
             <input
               type="text"
               placeholder="Search courses..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="px-4 py-2 bg-white/10 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 bg-white/10 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-80"
             />
-            
-            <select
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="px-4 py-2 bg-black text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Categories</option>
-              {categoriesList.map((cat) => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -85,8 +88,8 @@ const Courses = () => {
           </div>
         ) : courses.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-white/70 text-lg">No courses found matching your criteria.</p>
-            <p className="text-white/50 mt-2">Try adjusting your search or category filter.</p>
+            <p className="text-white/70 text-lg">No courses found matching your search.</p>
+            <p className="text-white/50 mt-2">Try adjusting your search query.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -100,9 +103,6 @@ const Courses = () => {
                   <h2 className="text-xl font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
                     {course.title}
                   </h2>
-                  <span className="inline-block px-3 py-1 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
-                    {course.category}
-                  </span>
                 </div>
                 
                 <p className="text-white/70 mb-4 line-clamp-3">
@@ -112,10 +112,7 @@ const Courses = () => {
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center space-x-4">
                     <span className="text-white/60">
-                      📚 {course.total_problems} Problems
-                    </span>
-                    <span className={`font-medium ${getDifficultyColor(course.total_points)}`}>
-                      🏆 {course.total_points} Points
+                      {course.total_problems} Problems
                     </span>
                   </div>
                   

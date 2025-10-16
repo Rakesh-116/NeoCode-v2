@@ -111,16 +111,42 @@ const difficultyLevels = [
 ];
 
 const difficultyLevelsProperties = {
-  cakewalk: { score: "10", bgColor: "bg-blue-500", color: "text-blue-100" },
-  easy: { score: "15", bgColor: "bg-green-500", color: "text-green-100" },
+  cakewalk: { 
+    score: 10, // NeoCode general score
+    coursePoints: 1, // Course-specific points 
+    bgColor: "bg-blue-500", 
+    color: "text-blue-100" 
+  },
+  easy: { 
+    score: 15, 
+    coursePoints: 2, 
+    bgColor: "bg-green-500", 
+    color: "text-green-100" 
+  },
   easymedium: {
-    score: "20",
+    score: 20,
+    coursePoints: 3,
     bgColor: "bg-orange-500",
     color: "text-orange-100",
   },
-  medium: { score: "25", bgColor: "bg-amber-500", color: "text-amber-100" },
-  mediumhard: { score: "30", bgColor: "bg-pink-500", color: "text-pink-100" },
-  hard: { score: "35", bgColor: "bg-red-500", color: "text-red-100" },
+  medium: { 
+    score: 25, 
+    coursePoints: 4, 
+    bgColor: "bg-amber-500", 
+    color: "text-amber-100" 
+  },
+  mediumhard: { 
+    score: 30, 
+    coursePoints: 5, 
+    bgColor: "bg-pink-500", 
+    color: "text-pink-100" 
+  },
+  hard: { 
+    score: 35, 
+    coursePoints: 6, 
+    bgColor: "bg-red-500", 
+    color: "text-red-100" 
+  },
 };
 
 const pagesCount = [10, 20, 30, 40, 50, 100];

@@ -102,14 +102,35 @@ const AdminCourseDetails = () => {
     <div className="bg-black/95 min-h-screen">
       <Header />
       <div className="pt-28 px-10 max-w-6xl mx-auto">
+        {/* Breadcrumb Navigation */}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm">
+            <li>
+              <button
+                onClick={() => navigate('/admin')}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Admin
+              </button>
+            </li>
+            <li className="text-white/50">›</li>
+            <li>
+              <button
+                onClick={() => navigate('/admin/courses')}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Course Management
+              </button>
+            </li>
+            <li className="text-white/50">›</li>
+            <li className="text-white/70 truncate max-w-xs">
+              {course?.title || 'Loading...'}
+            </li>
+          </ol>
+        </nav>
+
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate("/admin/courses")}
-            className="text-blue-400 hover:text-blue-300 mb-4 flex items-center"
-          >
-            ← Back to Course Management
-          </button>
           
           <div className="flex justify-between items-start">
             <div>

@@ -117,7 +117,7 @@ const getAllProblemsForCourseController = async (req, res) => {
 
   const categoryList = categories ? categories.split(",") : [];
   let baseQuery = `
-    SELECT id, title, score, difficulty, category
+    SELECT id, title, CAST(score AS INTEGER) as score, difficulty, category
     FROM problem
   `;
   const conditions = [];
@@ -125,7 +125,7 @@ const getAllProblemsForCourseController = async (req, res) => {
 
   if (categoryList.length > 0) {
     values.push(categoryList);
-    conditions.push(`category = ANY($${values.length})`);
+    conditions.push(`category && $${values.length}`);
   }
 
   if (difficulty) {

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import Header from "../Header";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const BlogPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
 
   useEffect(() => {
@@ -30,6 +31,24 @@ const BlogPage = () => {
     <div className="bg-black/95 min-h-screen px-4 sm:px-10 pb-10">
       <Header />
       <div className="pt-28 max-w-4xl mx-auto">
+        {/* Breadcrumb Navigation */}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm">
+            <li>
+              <button
+                onClick={() => navigate('/blogs')}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Blogs
+              </button>
+            </li>
+            <li className="text-white/50">›</li>
+            <li className="text-white/70 truncate max-w-xs">
+              {blog?.title || 'Loading...'}
+            </li>
+          </ol>
+        </nav>
+
         {blog ? (
           <div className="border border-white/70 text-white p-6 sm:p-10 rounded-2xl shadow-xl">
             <h1 className="text-3xl sm:text-4xl font-bold text-teal-400 mb-4">

@@ -14,7 +14,7 @@ import { UserProvider } from "./context/UserContext";
 import SavedSnippets from "./components/pages/SavedSnippets";
 import Courses from "./components/pages/Courses/Courses";
 import CourseDetails from "./components/pages/Courses/CourseDetails";
-import UserProgress from "./components/pages/Courses/UserProgress";
+
 
 import AdminRoute from "./components/pages/Auth/AdminRoute";
 import AdminDashboard from "./components/pages/Admin/AdminDashboard";
@@ -25,6 +25,8 @@ import BlogPage from "./components/pages/Blogs/BlogPage";
 import CreateCourse from "./components/pages/Admin/Courses/CreateCourse";
 import CourseList from "./components/pages/Admin/Courses/CourseList";
 import AdminCourseDetails from "./components/pages/Admin/Courses/AdminCourseDetails";
+import EditCourse from "./components/pages/Admin/Courses/EditCourse";
+import AdminUserAnalysis from "./components/pages/Admin/AdminUserAnalysis";
 
 function App() {
   return (
@@ -44,7 +46,7 @@ function App() {
           <Route path="/savedsnippets" element={<SavedSnippets />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:id" element={<CourseDetails />} />
-          <Route path="/my-progress" element={<UserProgress />} />
+
           {/* Admin-only Route */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
@@ -52,8 +54,10 @@ function App() {
             <Route path="/admin/newblog" element={<CreateBlog />} />
             <Route path="/admin/courses" element={<CourseList />} />
             <Route path="/admin/courses/:id" element={<AdminCourseDetails />} />
+            <Route path="/admin/courses/edit/:id" element={<EditCourse />} />
             <Route path="/admin/newcourse" element={<CreateCourse />} />
             <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/users/analysis/:userId" element={<AdminUserAnalysis />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

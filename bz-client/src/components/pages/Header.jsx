@@ -213,13 +213,7 @@ const Header = () => {
                   >
                     My Snippets
                   </Link>
-                  <Link
-                    to="/my-progress"
-                    className="block p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    My Progress
-                  </Link>
+
                   <button
                     onClick={onLogOut}
                     className="w-full text-left p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"

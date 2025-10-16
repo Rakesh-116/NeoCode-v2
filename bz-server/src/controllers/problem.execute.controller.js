@@ -63,7 +63,7 @@ const executeProblemController = async (req, res) => {
 
 const submitProblemController = async (req, res) => {
   try {
-    const { problemId, sourceCode, language } = req.body;
+    const { problemId, sourceCode, language, courseId } = req.body;
     const userId = req.userId;
 
     const getProblemTestcasesQuery =
@@ -156,11 +156,13 @@ const submitProblemController = async (req, res) => {
           }
         }
 
+        // Insert into submissions table with courseId (NULL for regular submissions)
         const insertProblemSubmissionQuery =
-          "INSERT INTO submissions (id,problem_id, user_id, code, language, test_results, verdict, execution_time) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *";
+          "INSERT INTO submissions (id, problem_id, user_id, code, language, test_results, verdict, execution_time, course_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
 
+        const submissionId = generateUuid();
         const insertHiddenTestcasesProps = [
-          generateUuid(),
+          submissionId,
           problemId,
           userId,
           sourceCode,
@@ -168,6 +170,7 @@ const submitProblemController = async (req, res) => {
           JSON.stringify(testResults),
           verdict,
           totalExecutionTime,
+          courseId || null, // NULL for regular submissions, courseId for course submissions
         ];
 
         const insertHiddenTestcasesResult = await pool.query(
@@ -180,6 +183,113 @@ const submitProblemController = async (req, res) => {
         }
 
         console.log(insertHiddenTestcasesResult.rows);
+
+        // If verdict is ACCEPTED, handle category points (for both course and regular submissions)
+        if (verdict === "ACCEPTED") {
+          try {
+            // Get problem details for category points
+            const getProblemDetailsQuery = `
+              SELECT category, difficulty, score FROM problem 
+              WHERE id = $1
+            `;
+            const problemDetailsResult = await pool.query(getProblemDetailsQuery, [problemId]);
+            
+            if (problemDetailsResult.rowCount > 0) {
+              const { category, difficulty, score } = problemDetailsResult.rows[0];
+              
+              // Check if user already solved this problem before (avoid duplicate category points)
+              const checkPreviousSolutionQuery = `
+                SELECT COUNT(*) FROM user_problem_points 
+                WHERE user_id = $1 AND problem_id = $2
+              `;
+              const previousSolutionResult = await pool.query(checkPreviousSolutionQuery, [userId, problemId]);
+              const alreadySolved = parseInt(previousSolutionResult.rows[0].count) > 0;
+              
+              // Award category points only if this is the first time solving this problem
+              if (!alreadySolved && category) {
+                const pointsAwarded = parseInt(score) || 0;
+                
+                // Insert into user_problem_points to track this problem is solved
+                const insertProblemPointsQuery = `
+                  INSERT INTO user_problem_points (user_id, problem_id, points_awarded)
+                  VALUES ($1, $2, $3)
+                `;
+                await pool.query(insertProblemPointsQuery, [userId, problemId, pointsAwarded]);
+                
+                // Handle category - could be array format like {Math,I/O} or single string
+                let categories = [];
+                if (typeof category === 'string') {
+                  // Check if it's PostgreSQL array format like {Math,I/O}
+                  if (category.startsWith('{') && category.endsWith('}')) {
+                    categories = category.slice(1, -1).split(',').map(cat => cat.trim());
+                  } else {
+                    categories = [category];
+                  }
+                } else if (Array.isArray(category)) {
+                  categories = category;
+                }
+                
+                // Award points for each category
+                for (const cat of categories) {
+                  if (cat && cat.trim()) {
+                    const cleanCategory = cat.trim();
+                    const updateCategoryPointsQuery = `
+                      INSERT INTO user_category_points (user_id, category, total_points, problems_solved)
+                      VALUES ($1, $2, $3, 1)
+                      ON CONFLICT (user_id, category)
+                      DO UPDATE SET 
+                        total_points = user_category_points.total_points + EXCLUDED.total_points,
+                        problems_solved = user_category_points.problems_solved + 1
+                    `;
+                    await pool.query(updateCategoryPointsQuery, [userId, cleanCategory, pointsAwarded]);
+                  }
+                }
+              }
+            }
+          } catch (categoryPointsError) {
+            console.error("Error updating category points:", categoryPointsError);
+            // Don't fail the submission if category points update fails
+          }
+        }
+
+        // If it's a course submission and verdict is ACCEPTED, update course tracking
+        if (courseId && verdict === "ACCEPTED") {
+          try {
+            // Get points for this problem in the course
+            const getPointsQuery = `
+              SELECT points FROM course_problems 
+              WHERE course_id = $1 AND problem_id = $2
+            `;
+            const pointsResult = await pool.query(getPointsQuery, [courseId, problemId]);
+            const pointsEarned = pointsResult.rows[0]?.points || 0;
+
+            // Insert or update course_submissions tracking (UNIQUE constraint handles duplicates)
+            const insertCourseSubmissionQuery = `
+              INSERT INTO course_submissions (user_id, course_id, problem_id, submission_id, points_earned)
+              VALUES ($1, $2, $3, $4, $5)
+              ON CONFLICT (user_id, course_id, problem_id) 
+              DO UPDATE SET 
+                submission_id = EXCLUDED.submission_id,
+                points_earned = EXCLUDED.points_earned,
+                solved_at = NOW()
+            `;
+            
+            await pool.query(insertCourseSubmissionQuery, [
+              userId,
+              courseId, 
+              problemId,
+              submissionId,
+              pointsEarned
+            ]);
+
+            // Course progress is now calculated dynamically from submissions
+            // No need to maintain separate user_course_progress table
+
+          } catch (progressError) {
+            console.error("Error updating course submission record:", progressError);
+            // Don't fail the submission if course submission tracking fails
+          }
+        }
 
         const totalTestcases = testResults.length;
         const passedTestcases = testResults.filter(

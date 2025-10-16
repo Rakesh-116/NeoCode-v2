@@ -147,6 +147,127 @@ const getCourseDetailsController = async (req, res) => {
   }
 };
 
+const updateCourseController = async (req, res) => {
+  const courseId = req.params.id;
+  const { title, category, description, problems } = req.body;
+
+  if (!title || !category || !problems || problems.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide title, category, and at least one problem",
+    });
+  }
+
+  try {
+    // Start transaction
+    await pool.query('BEGIN');
+
+    // Update course details
+    const updateCourseQuery = `
+      UPDATE courses 
+      SET title = $1, category = $2, description = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4
+    `;
+    
+    const courseResult = await pool.query(updateCourseQuery, [
+      title,
+      category,
+      description,
+      courseId,
+    ]);
+
+    if (courseResult.rowCount === 0) {
+      await pool.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // Get current course problems
+    const getCurrentProblemsQuery = `SELECT problem_id FROM course_problems WHERE course_id = $1`;
+    const currentProblemsResult = await pool.query(getCurrentProblemsQuery, [courseId]);
+    const currentProblemIds = currentProblemsResult.rows.map(row => row.problem_id);
+
+    // Get new problem IDs
+    const newProblemIds = problems.map(p => p.problem_id);
+
+    // Find problems to remove (in current but not in new)
+    const problemsToRemove = currentProblemIds.filter(id => !newProblemIds.includes(id));
+
+    // Find problems to add (in new but not in current)
+    const problemsToAdd = problems.filter(p => !currentProblemIds.includes(p.problem_id));
+
+    // Remove problems that are no longer in the course
+    if (problemsToRemove.length > 0) {
+      // First, set course_id to NULL for submissions of removed problems
+      const updateSubmissionsQuery = `
+        UPDATE submissions 
+        SET course_id = NULL 
+        WHERE course_id = $1 AND problem_id = ANY($2)
+      `;
+      await pool.query(updateSubmissionsQuery, [courseId, problemsToRemove]);
+
+      // Then remove the problems from course_problems
+      const removeProblemsQuery = `
+        DELETE FROM course_problems 
+        WHERE course_id = $1 AND problem_id = ANY($2)
+      `;
+      await pool.query(removeProblemsQuery, [courseId, problemsToRemove]);
+    }
+
+    // Add new problems
+    if (problemsToAdd.length > 0) {
+      const insertProblemsQuery = `
+        INSERT INTO course_problems (course_id, problem_id, points)
+        VALUES ($1, $2, $3)
+      `;
+
+      for (const problem of problemsToAdd) {
+        await pool.query(insertProblemsQuery, [
+          courseId,
+          problem.problem_id,
+          problem.points,
+        ]);
+      }
+    }
+
+    // Update points for existing problems
+    const updatePointsQuery = `
+      UPDATE course_problems 
+      SET points = $1 
+      WHERE course_id = $2 AND problem_id = $3
+    `;
+
+    for (const problem of problems) {
+      if (currentProblemIds.includes(problem.problem_id)) {
+        await pool.query(updatePointsQuery, [
+          problem.points,
+          courseId,
+          problem.problem_id,
+        ]);
+      }
+    }
+
+    // Commit transaction
+    await pool.query('COMMIT');
+
+    return res.status(200).json({
+      success: true,
+      message: "Course updated successfully",
+      courseId: courseId,
+    });
+  } catch (error) {
+    // Rollback transaction on error
+    await pool.query('ROLLBACK');
+    console.error("Error updating course:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error. Please try again later.",
+    });
+  }
+};
+
 const deleteCourseController = async (req, res) => {
   const courseId = req.params.id;
 
@@ -179,5 +300,6 @@ export {
   createCourseController,
   getAllCoursesController,
   getCourseDetailsController,
+  updateCourseController,
   deleteCourseController,
 };

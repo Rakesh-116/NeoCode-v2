@@ -5,6 +5,7 @@ import {
   getAllCoursesController,
   getCourseDetailsController,
   deleteCourseController,
+  updateCourseController,
 } from "../controllers/courses.admin.controller.js";
 
 const coursesRoute = Router();
@@ -17,6 +18,9 @@ coursesRoute.post("/create", userAuthentication, createCourseController);
 
 // Get course details by ID
 coursesRoute.get("/:id", userAuthentication, getCourseDetailsController);
+
+// Update a course by ID
+coursesRoute.put("/update/:id", userAuthentication, updateCourseController);
 
 // Delete a course by ID
 coursesRoute.delete("/delete/:id", userAuthentication, deleteCourseController);

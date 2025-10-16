@@ -56,7 +56,7 @@ const CreateCourse = () => {
 
     const problemsWithPoints = selectedProblems.map((p) => ({
       problem_id: p.id,
-      points: difficultyLevelsProperties[p.difficulty.toLowerCase()]?.score || 10,
+      points: difficultyLevelsProperties[p.difficulty.toLowerCase()]?.coursePoints || 1,
     }));
 
     try {
@@ -80,6 +80,33 @@ const CreateCourse = () => {
     <div className="min-h-screen bg-black/95">
       <Header />
       <div className="max-w-5xl mx-auto p-6 pt-28">
+        {/* Breadcrumb Navigation */}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm">
+            <li>
+              <button
+                onClick={() => navigate('/admin')}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Admin
+              </button>
+            </li>
+            <li className="text-white/50">›</li>
+            <li>
+              <button
+                onClick={() => navigate('/admin/courses')}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Course Management
+              </button>
+            </li>
+            <li className="text-white/50">›</li>
+            <li className="text-white/70">
+              Create New Course
+            </li>
+          </ol>
+        </nav>
+        
         <h1 className="text-2xl font-bold mb-6 text-white">Create New Course</h1>
 
         {/* Course Info */}

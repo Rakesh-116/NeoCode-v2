@@ -55,15 +55,16 @@ CREATE TABLE testcases (
 
 Submissions Table
 CREATE TABLE submissions (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   problem_id INT REFERENCES Problem(id) ON DELETE CASCADE,
   user_id UUID REFERENCES Users(id) ON DELETE CASCADE,
   code TEXT NOT NULL,
   language VARCHAR(100) NOT NULL,
   test_results JSONB NOT NULL,
-  verdict submission_status NOT NULL,
+  verdict VARCHAR(50) NOT NULL,
   submission_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  execution_time VARCHAR(255) NOT NULL
+  execution_time VARCHAR(255) NOT NULL,
+  course_id UUID REFERENCES courses(id) ON DELETE SET NULL DEFAULT NULL
 );
 
 Saved Snippets Table
@@ -117,4 +118,36 @@ CREATE TABLE user_course_progress (
     course_points INT DEFAULT 0,       -- cumulative points from solved problems
     full_completion BOOLEAN DEFAULT FALSE, -- TRUE if all course problems solved
     last_solved_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE course_submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    problem_id integer REFERENCES problem(id) ON DELETE CASCADE,
+    submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE,
+    points_earned INT DEFAULT 0,
+    solved_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, course_id, problem_id) -- One solution per problem per course
+);
+
+Tracks how many points a user has per category.
+CREATE TABLE user_category_points (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES Users(id) ON DELETE CASCADE,
+  category VARCHAR(100) NOT NULL,
+  total_points INT DEFAULT 0,
+  problems_solved INT DEFAULT 0,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, category)
+);
+
+Tracks which problems have already awarded category points.
+CREATE TABLE user_problem_points (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES Users(id) ON DELETE CASCADE,
+  problem_id INT REFERENCES Problem(id) ON DELETE CASCADE,
+  points_awarded INT DEFAULT 0,
+  awarded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, problem_id)
 );

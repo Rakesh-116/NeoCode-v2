@@ -19,6 +19,7 @@ const CodeEditor = ({
   prohibitedKeys,
   solution,
   openEditorData,
+  courseId,
 }) => {
   const editorRef = useRef(null);
   const navigate = useNavigate();
@@ -231,14 +232,21 @@ const CodeEditor = ({
     const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     try {
       setOpenModal(true);
+      const requestBody = {
+        problemId,
+        sourceCode,
+        language,
+        input: selectedInputValue,
+      };
+
+      // Add courseId if present (course context)
+      if (courseId) {
+        requestBody.courseId = courseId;
+      }
+
       const response = await axios.post(
         `${API_BASE_URL}/api/problem/submit`,
-        {
-          problemId,
-          sourceCode,
-          language,
-          input: selectedInputValue,
-        },
+        requestBody,
         {
           headers: {
             Authorization: `Bearer ${token}`,

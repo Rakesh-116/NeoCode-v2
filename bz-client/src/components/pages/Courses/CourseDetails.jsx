@@ -12,8 +12,6 @@ const CourseDetails = () => {
   const { userData } = useUser();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [enrolling, setEnrolling] = useState(false);
-  const [enrolled, setEnrolled] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -26,10 +24,6 @@ const CourseDetails = () => {
       
       if (response.data.success) {
         setCourse(response.data.course);
-        // Check if user has progress (means enrolled)
-        if (response.data.course.user_progress && response.data.course.user_progress.solved_problems >= 0) {
-          setEnrolled(true);
-        }
       }
     } catch (error) {
       console.error("Error fetching course details:", error);
@@ -38,38 +32,10 @@ const CourseDetails = () => {
     }
   };
 
-  const handleEnroll = async () => {
-    if (!userData) {
-      navigate("/login");
-      return;
-    }
 
-    setEnrolling(true);
-    try {
-      const token = Cookies.get("neo_code_jwt_token");
-      const response = await axios.post(
-        `${API_BASE_URL}/api/courses/${id}/enroll`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setEnrolled(true);
-        // Refresh course details to get progress
-        fetchCourseDetails();
-      }
-    } catch (error) {
-      console.error("Error enrolling in course:", error);
-      if (error.response?.status === 400) {
-        setEnrolled(true); // Already enrolled
-      }
-    } finally {
-      setEnrolling(false);
-    }
-  };
 
   const handleProblemClick = (problemId) => {
-    navigate(`/problems/${problemId}`);
+    navigate(`/problems/${problemId}?courseId=${id}&tab=description`);
   };
 
   const getDifficultyColor = (difficulty) => {
@@ -126,14 +92,26 @@ const CourseDetails = () => {
     <div className="bg-black/95 min-h-screen">
       <Header />
       <div className="pt-28 px-10 max-w-6xl mx-auto">
+        {/* Breadcrumb Navigation */}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm">
+            <li>
+              <button
+                onClick={() => navigate('/courses')}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Courses
+              </button>
+            </li>
+            <li className="text-white/50">›</li>
+            <li className="text-white/70 truncate max-w-xs">
+              {course?.title || 'Loading...'}
+            </li>
+          </ol>
+        </nav>
+
         {/* Course Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate("/courses")}
-            className="text-blue-400 hover:text-blue-300 mb-4 flex items-center"
-          >
-            ← Back to Courses
-          </button>
           
           <div className="bg-white/5 p-8 rounded-lg border border-white/10">
             <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
@@ -146,16 +124,16 @@ const CourseDetails = () => {
                     {course.category}
                   </span>
                   <span className="text-white/60">
-                    📚 {course.total_problems} Problems
+                    {course.total_problems} Problems
                   </span>
-                  <span className="text-white/60">
-                    🏆 {course.total_points} Total Points
-                  </span>
+                  {/* <span className="text-white/60">
+                    {course.total_points} Total Points
+                  </span> */}
                 </div>
               </div>
               
               <div className="flex flex-col items-end gap-4">
-                {userData && enrolled && course.user_progress && (
+                {userData && course.user_progress && (
                   <div className="text-right">
                     <div className="text-white/70 text-sm mb-2">Your Progress</div>
                     <div className="w-48 bg-gray-700 rounded-full h-2 mb-2">
@@ -170,35 +148,10 @@ const CourseDetails = () => {
                     <div className="text-blue-400 text-sm">
                       {course.user_progress.course_points} points earned
                     </div>
+                    {course.user_progress?.full_completion && (
+                      <div className="text-green-400 text-sm mt-1">Course Completed!</div>
+                    )}
                   </div>
-                )}
-                
-                {userData ? (
-                  enrolled ? (
-                    <div className="text-center">
-                      <div className="px-6 py-2 bg-green-600 text-white rounded-lg mb-2">
-                        ✓ Enrolled
-                      </div>
-                      {course.user_progress?.full_completion && (
-                        <div className="text-green-400 text-sm">🎉 Course Completed!</div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleEnroll}
-                      disabled={enrolling}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium"
-                    >
-                      {enrolling ? "Enrolling..." : "Enroll in Course"}
-                    </button>
-                  )
-                ) : (
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
-                  >
-                    Login to Enroll
-                  </button>
                 )}
               </div>
             </div>
@@ -231,20 +184,22 @@ const CourseDetails = () => {
                           <span className={`px-2 py-1 text-xs rounded ${getDifficultyColor(problem.difficulty)}`}>
                             {problem.difficulty}
                           </span>
-                          <span className="text-white/50 text-sm">
-                            {problem.problem_category}
-                          </span>
+                          
                         </div>
                       </div>
                     </div>
                     
                     <div className="text-right">
-                      <div className="text-blue-400 font-medium">
+                      <div className="text-blue-400 font-medium mb-2">
                         {problem.points} points
                       </div>
-                      <button className="text-blue-400 hover:text-blue-300 text-sm mt-1">
-                        Solve Problem →
-                      </button>
+                      <div className="flex space-x-1">
+                        {problem.problem_category.map((category, idx) => (
+                          <span key={idx} className="px-2 py-1 text-xs rounded bg-gray-700">
+                            {category}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
