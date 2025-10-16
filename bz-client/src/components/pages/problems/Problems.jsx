@@ -269,7 +269,7 @@ const Problems = () => {
               {userData && userData.role === "admin" && (
                 <button
                   className="px-3 py-1 rounded-md border border-gray-400 hover:bg-gray-700 text-white"
-                  onClick={() => navigate("/newproblem")}
+                  onClick={() => navigate("/admin/newproblem")}
                 >
                   Add New
                 </button>

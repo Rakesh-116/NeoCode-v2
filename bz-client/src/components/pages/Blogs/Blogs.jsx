@@ -108,7 +108,7 @@ const Blogs = () => {
           {userData && userData.role === "admin" && (
             <button
               className="mb-4 px-3 py-1 rounded-md border border-gray-400 hover:bg-gray-700 text-white"
-              onClick={() => navigate("/newblog")}
+              onClick={() => navigate("/admin/newblog")}
             >
               New blog
             </button>

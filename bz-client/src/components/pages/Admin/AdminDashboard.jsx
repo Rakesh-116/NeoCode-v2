@@ -3,50 +3,72 @@ import { useNavigate } from "react-router-dom";
 
 import Header from "../Header";
 import { useUser } from "../../../context/UserContext";
-import AdminUsers from "./AdminUsers";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { userData } = useUser();
 
+  const features = [
+    {
+      title: "Manage Users",
+      description: "View, edit, or delete registered users.",
+      buttonText: "Go to Users",
+      onClick: () => navigate("/admin/users"),
+    },
+    // {
+    //   title: "Manage Blogs",
+    //   description: "Add, edit, or remove blogs authored by you or others.",
+    //   buttonText: "Go to Blogs",
+    //   onClick: () => navigate("/admin/newblog"),
+    // },
+    // {
+    //   title: "Manage Problems",
+    //   description: "Add, edit, or delete coding problems for courses and contests.",
+    //   buttonText: "Go to Problems",
+    //   onClick: () => navigate("/admin/problems"),
+    // },
+    {
+      title: "Manage Courses",
+      description: "Create courses, assign problems, and monitor submissions.",
+      buttonText: "Go to Courses",
+      onClick: () => navigate("/admin/courses"),
+    },
+    // {
+    //   title: "Review Submissions",
+    //   description: "Check user code submissions and provide feedback.",
+    //   buttonText: "Go to Submissions",
+    //   onClick: () => navigate("/admin/submissions"),
+    // },
+  ];
+
   return (
     <div className="bg-black/95 min-h-screen text-white">
       <Header />
       <div className="mt-28 px-10">
-        <div className="flex items-start w-full space-x-4 min-h-[200px]">
-          <div className="mb-8 p-4 border border-white/40 rounded-lg w-[40%] h-full">
-            <h1 className="text-3xl font-semibold">
-              Welcome, {userData?.username || "Admin"} 👋
-            </h1>
-            <p className="mt-2 text-white/80">
-              You have access to powerful administrative features:
-            </p>
-            <ul className="list-disc list-inside mt-2 text-white/70">
-              <li>View and manage registered users.</li>
-              <li>Add, edit, or delete coding problems.</li>
-              <li>Review and delete user submissions.</li>
-            </ul>
-          </div>
+        <h1 className="text-3xl font-semibold mb-6">
+          Welcome, {userData?.username || "Admin"} 👋
+        </h1>
+        <p className="text-white/80 mb-8">
+          You have access to powerful administrative features. Choose a task below to get started:
+        </p>
 
-          <div className="mb-8 p-4 border border-white/40 rounded-lg w-[60%] h-full">
-            <h2 className="text-2xl font-semibold mb-2">
-              Feeling Smart Today? 🤓
-            </h2>
-            <p className="text-white/80">
-              Share your tech wisdom, admin tales, or coding chaos stories! 💻✨
-            </p>
-            <p className="mt-2 text-white/70">
-              Hit that button below and let the blog-writing magic begin! 🪄
-            </p>
-            <button
-              onClick={() => navigate("/newblog")}
-              className="mt-2 px-4 py-2 border border-white/30 rounded-lg hover:bg-gray-700 transition-all"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="p-6 border border-white/30 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
             >
-              ✍️ Write a Blog
-            </button>
-          </div>
+              <h2 className="text-xl font-semibold mb-2">{feature.title}</h2>
+              <p className="text-white/70 mb-4">{feature.description}</p>
+              <button
+                onClick={feature.onClick}
+                className="px-4 py-2 border border-white/30 rounded-lg hover:bg-blue-500 hover:text-white transition-all"
+              >
+                {feature.buttonText}
+              </button>
+            </div>
+          ))}
         </div>
-        <AdminUsers />
       </div>
     </div>
   );

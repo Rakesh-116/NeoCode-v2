@@ -112,4 +112,52 @@ const deleteProblemController = async (req, res) => {
   }
 };
 
-export { createProblemController, deleteProblemController };
+const getAllProblemsForCourseController = async (req, res) => {
+  const { categories, difficulty, search } = req.query;
+
+  const categoryList = categories ? categories.split(",") : [];
+  let baseQuery = `
+    SELECT id, title, score, difficulty, category
+    FROM problem
+  `;
+  const conditions = [];
+  const values = [];
+
+  if (categoryList.length > 0) {
+    values.push(categoryList);
+    conditions.push(`category = ANY($${values.length})`);
+  }
+
+  if (difficulty) {
+    values.push(difficulty.toLowerCase());
+    conditions.push(`LOWER(difficulty::text) = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(`%${search.toLowerCase()}%`);
+    conditions.push(`LOWER(title) LIKE $${values.length}`);
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const orderClause = "ORDER BY id ASC";
+
+  const finalQuery = `${baseQuery} ${whereClause} ${orderClause}`;
+
+  try {
+    const result = await pool.query(finalQuery, values);
+    return res.status(result.rowCount > 0 ? 200 : 404).json({
+      success: result.rowCount > 0,
+      problems: result.rows,
+      message: result.rowCount > 0 ? undefined : "No problems found",
+    });
+  } catch (error) {
+    console.error("Error fetching problems:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error. Please try again later.",
+    });
+  }
+};
+
+export { createProblemController, deleteProblemController, getAllProblemsForCourseController };

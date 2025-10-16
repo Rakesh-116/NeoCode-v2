@@ -5,6 +5,7 @@ import { LuTrash2 } from "react-icons/lu";
 import { RxCross2 } from "react-icons/rx";
 import { FaCaretDown } from "react-icons/fa";
 import { Oval } from "react-loader-spinner"; // make sure you have this installed
+import Header from "../Header";
 
 const getAllUsersApiStatusConstant = {
   initial: "INITIAL",
@@ -169,55 +170,58 @@ const AdminUsers = () => {
   );
 
   return (
-    <div className="">
-      <h1 className="text-white text-[40px]">Users Data</h1>
-      {(() => {
-        switch (apiStatus) {
-          case getAllUsersApiStatusConstant.inProgress:
-            return renderLoader();
-          case getAllUsersApiStatusConstant.failure:
-            return renderFailure();
-          case getAllUsersApiStatusConstant.success:
-            return renderUsersList();
-          default:
-            return null;
-        }
-      })()}
+    <div>
+      <Header />
+      <div className="bg-black/95 min-h-screen pt-28 px-10">
+        <h1 className="text-white text-[40px]">Users Data</h1>
+        {(() => {
+          switch (apiStatus) {
+            case getAllUsersApiStatusConstant.inProgress:
+              return renderLoader();
+            case getAllUsersApiStatusConstant.failure:
+              return renderFailure();
+            case getAllUsersApiStatusConstant.success:
+              return renderUsersList();
+            default:
+              return null;
+          }
+        })()}
 
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center">
-          <div className="w-1/3 bg-gray-800 text-white rounded-lg p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="font-semibold text-xl">Confirm Delete</h1>
-              <button
-                className="text-white"
-                onClick={() => setModalOpen(false)}
-              >
-                <RxCross2 />
-              </button>
-            </div>
-            <p className="text-center mb-6">{warningMessage}</p>
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => {
-                  handleConfirmDelete();
-                  setModalOpen(false);
-                  setToDeleteId(null);
-                }}
-                className="bg-indigo-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition-colors"
-              >
-                YES
-              </button>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="bg-gray-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-700 transition-colors"
-              >
-                NO
-              </button>
+        {modalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center">
+            <div className="w-1/3 bg-gray-800 text-white rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h1 className="font-semibold text-xl">Confirm Delete</h1>
+                <button
+                  className="text-white"
+                  onClick={() => setModalOpen(false)}
+                >
+                  <RxCross2 />
+                </button>
+              </div>
+              <p className="text-center mb-6">{warningMessage}</p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => {
+                    handleConfirmDelete();
+                    setModalOpen(false);
+                    setToDeleteId(null);
+                  }}
+                  className="bg-indigo-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  YES
+                </button>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="bg-gray-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  NO
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

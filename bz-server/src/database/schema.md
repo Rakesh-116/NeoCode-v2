@@ -1,21 +1,15 @@
-### ENUM Types
+Users Table
+CREATE TABLE Users (
+  id UUID PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  email VARCHAR(100) NOT NULL UNIQUE,
+  role ENUM('user', 'admin') DEFAULT 'user',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-```
-CREATE TYPE submission_status AS ENUM ('AC', 'WRONG ANSWER', 'TLE', 'RTE');
-CREATE TYPE difficulty_level AS ENUM ('cakewalk', 'easy', 'easymedium', 'medium', 'mediumhard', 'hard');
-CREATE TYPE score_level AS ENUM ('10', '15', '20', '25', '30', '35');
-```
-
-### Users Table
-
-```
-
-
-```
-
-### Problem Table
-
-```
+Problem Table
 CREATE TABLE Problem (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
@@ -28,49 +22,38 @@ CREATE TABLE Problem (
   explaination TEXT DEFAULT 'Self Explainary',
   no_of_submissions INT DEFAULT 0,
   hidden BOOLEAN DEFAULT FALSE,
-  difficulty difficulty_level NOT NULL, -- ENUM type for difficulty levels
+  difficulty difficulty_level NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by UUID REFERENCES Users(id) ON DELETE CASCADE
+  created_by UUID REFERENCES Users(id) ON DELETE CASCADE,
+  score score_level DEFAULT '10',
+  category VARCHAR(100),
+  solution TEXT,
+  solution_language VARCHAR(100)
 );
 
-ALTER TABLE Problem
-ADD COLUMN score score_level DEFAULT '10';  -- Default score for 'cakewalk'
-```
-
-### Default Code Table
-
-```
+Default Code Table
 CREATE TABLE defaultCode (
   id SERIAL PRIMARY KEY,
   code TEXT NOT NULL,
   problem_id INT REFERENCES Problem(id) ON DELETE CASCADE,
   language VARCHAR(100) NOT NULL
 );
-```
 
-### Programming Languages Table
-
-```
+Programming Languages Table
 CREATE TABLE language (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) UNIQUE NOT NULL
 );
-```
 
-### Testcases Table
-
-```
+Testcases Table
 CREATE TABLE testcases (
   id SERIAL PRIMARY KEY,
-  testcase JSONB NOT NULL, -- Stores input-output pairs in JSON format
-  problem_id INT REFERENCES Problem(id) ON DELETE CASCADE,
+  testcase JSONB NOT NULL,
+  problem_id INT REFERENCES Problem(id) ON DELETE CASCADE
 );
-```
 
-### Submissions Table
-
-```
+Submissions Table
 CREATE TABLE submissions (
   id SERIAL PRIMARY KEY,
   problem_id INT REFERENCES Problem(id) ON DELETE CASCADE,
@@ -79,29 +62,23 @@ CREATE TABLE submissions (
   language VARCHAR(100) NOT NULL,
   test_results JSONB NOT NULL,
   verdict submission_status NOT NULL,
-  submission_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  submission_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  execution_time VARCHAR(255) NOT NULL
 );
-```
 
-ALTER TABLE submissions
-ADD column execution_time varchar(255) NOT NULL
-
-### Saved Snippets Table
-
-```
+Saved Snippets Table
 CREATE TABLE savedSnippets(
-  id SERIAL UUID,
+  id UUID PRIMARY KEY,
   user_id UUID REFERENCES Users(id) ON DELETE CASCADE,
   code TEXT NOT NULL,
   explanation TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-```
+);
 
-```
+Blog Table
 CREATE TABLE Blog (
-  id uuid primary key,
+  id UUID PRIMARY KEY,
   title TEXT NOT NULL,
   tags TEXT[],
   description TEXT NOT NULL,
@@ -112,4 +89,32 @@ CREATE TABLE Blog (
   visible BOOLEAN DEFAULT TRUE
 );
 
-```
+CREATE TABLE courses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(50) NOT NULL, -- corresponds to problem.category
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE course_problems (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    problem_id integer REFERENCES problem(id) ON DELETE CASCADE,
+    points INT NOT NULL, -- points earned for this problem (calculated by difficulty)
+    visibility VARCHAR(20) DEFAULT 'course_only', -- course_only | public | contest
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE user_course_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    solved_problems INT DEFAULT 0,     -- total solved
+    total_problems INT DEFAULT 0,      -- cached total problems
+    course_points INT DEFAULT 0,       -- cumulative points from solved problems
+    full_completion BOOLEAN DEFAULT FALSE, -- TRUE if all course problems solved
+    last_solved_at TIMESTAMP DEFAULT NOW()
+);

@@ -119,14 +119,14 @@ const Header = () => {
           </Link>
           {isLoggedIn && (
             <Link
-              to="/submissions"
+              to="/courses"
               className={`hover:text-white ${
-                location.pathname === "/submissions"
+                location.pathname === "/courses"
                   ? "text-white"
                   : "text-white/70"
               }`}
             >
-              Submissions
+              Courses
             </Link>
           )}
           {isLoggedIn && (
@@ -154,7 +154,7 @@ const Header = () => {
         </div>
         <div className="flex items-center">
           <a
-            href="https://github.com/Rakesh-116/NeoCode"
+            href="https://github.com/Rakesh-116/NeoCode-v2"
             target="_blank"
             rel="noopener noreferrer"
             className="mr-6 flex items-center space-x-2 hover:opacity-80 transition border border-white/20 hover:border-white/25 hover:bg-white/10 p-2 rounded-md"
@@ -202,10 +202,23 @@ const Header = () => {
                     My Profile
                   </Link>
                   <Link
+                    to="/submissions"
+                    className="block p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"
+                  >
+                    My Submissions
+                  </Link>
+                  <Link
                     to="/savedsnippets"
                     className="block p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"
                   >
-                    Saved Snippets
+                    My Snippets
+                  </Link>
+                  <Link
+                    to="/my-progress"
+                    className="block p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md"
+                    onClick={() => setShowDropdown(false)}
+                  >
+                    My Progress
                   </Link>
                   <button
                     onClick={onLogOut}

@@ -12,12 +12,19 @@ import Submissions from "./components/pages/Submissions/SubmissionsPage";
 import Profile from "./components/pages/Profile";
 import { UserProvider } from "./context/UserContext";
 import SavedSnippets from "./components/pages/SavedSnippets";
+import Courses from "./components/pages/Courses/Courses";
+import CourseDetails from "./components/pages/Courses/CourseDetails";
+import UserProgress from "./components/pages/Courses/UserProgress";
 
 import AdminRoute from "./components/pages/Auth/AdminRoute";
 import AdminDashboard from "./components/pages/Admin/AdminDashboard";
+import AdminUsers from "./components/pages/Admin/AdminUsers";
 import CreateProblem from "./components/pages/Admin/CreateProblem";
 import CreateBlog from "./components/pages/Admin/CreateBlog";
 import BlogPage from "./components/pages/Blogs/BlogPage";
+import CreateCourse from "./components/pages/Admin/Courses/CreateCourse";
+import CourseList from "./components/pages/Admin/Courses/CourseList";
+import AdminCourseDetails from "./components/pages/Admin/Courses/AdminCourseDetails";
 
 function App() {
   return (
@@ -35,11 +42,18 @@ function App() {
           <Route path="/compiler" element={<MyCodePage />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/savedsnippets" element={<SavedSnippets />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:id" element={<CourseDetails />} />
+          <Route path="/my-progress" element={<UserProgress />} />
           {/* Admin-only Route */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/newproblem" element={<CreateProblem />} />
-            <Route path="/newblog" element={<CreateBlog />} />
+            <Route path="/admin/newproblem" element={<CreateProblem />} />
+            <Route path="/admin/newblog" element={<CreateBlog />} />
+            <Route path="/admin/courses" element={<CourseList />} />
+            <Route path="/admin/courses/:id" element={<AdminCourseDetails />} />
+            <Route path="/admin/newcourse" element={<CreateCourse />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
