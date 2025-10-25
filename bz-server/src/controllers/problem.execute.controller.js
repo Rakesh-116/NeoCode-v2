@@ -66,6 +66,19 @@ const submitProblemController = async (req, res) => {
     const { problemId, sourceCode, language, courseId } = req.body;
     const userId = req.userId;
 
+    // First, check if the problem exists and is not hidden
+    const checkProblemQuery = 
+      "SELECT id FROM problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)";
+    
+    const checkProblemResult = await pool.query(checkProblemQuery, [problemId]);
+    
+    if (checkProblemResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found or not accessible"
+      });
+    }
+
     const getProblemTestcasesQuery =
       "SELECT * FROM testcases WHERE problem_id = $1";
 
@@ -207,14 +220,28 @@ const submitProblemController = async (req, res) => {
               
               // Award category points only if this is the first time solving this problem
               if (!alreadySolved && category) {
-                const pointsAwarded = parseInt(score) || 0;
+                // Calculate category points based on difficulty level
+                const getDifficultyPoints = (difficulty) => {
+                  switch (difficulty?.toLowerCase()) {
+                    case 'cakewalk': return 1;
+                    case 'easy': return 2;
+                    case 'easymedium': return 3;
+                    case 'medium': return 4;
+                    case 'mediumhard': return 5;
+                    case 'hard': return 6;
+                    default: return 1; // Default to cakewalk points
+                  }
+                };
                 
-                // Insert into user_problem_points to track this problem is solved
+                const categoryPointsAwarded = getDifficultyPoints(difficulty);
+                const problemScoreAwarded = parseInt(score) || 0;
+                
+                // Insert into user_problem_points to track this problem is solved (use problem score for NeoCode points)
                 const insertProblemPointsQuery = `
                   INSERT INTO user_problem_points (user_id, problem_id, points_awarded)
                   VALUES ($1, $2, $3)
                 `;
-                await pool.query(insertProblemPointsQuery, [userId, problemId, pointsAwarded]);
+                await pool.query(insertProblemPointsQuery, [userId, problemId, problemScoreAwarded]);
                 
                 // Handle category - could be array format like {Math,I/O} or single string
                 let categories = [];
@@ -241,7 +268,7 @@ const submitProblemController = async (req, res) => {
                         total_points = user_category_points.total_points + EXCLUDED.total_points,
                         problems_solved = user_category_points.problems_solved + 1
                     `;
-                    await pool.query(updateCategoryPointsQuery, [userId, cleanCategory, pointsAwarded]);
+                    await pool.query(updateCategoryPointsQuery, [userId, cleanCategory, categoryPointsAwarded]);
                   }
                 }
               }
@@ -454,15 +481,15 @@ const getExpectedOutputController = async (req, res) => {
   const userId = req.userId;
 
   const getSolutionQuery =
-    "SELECT solution, solution_language FROM problem WHERE id = $1";
+    "SELECT solution, solution_language FROM problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)";
 
   try {
     const getSolutionResult = await pool.query(getSolutionQuery, [problemId]);
 
     if (getSolutionResult.rowCount === 0) {
       return res.status(404).json({
-        success: true,
-        message: "No Predefined Solution is Present",
+        success: false,
+        message: "Problem not found or no predefined solution is present",
       });
     }
 

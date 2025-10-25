@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { RxCross2, RxArrowLeft } from "react-icons/rx";
 
 import Header from "../../Header.jsx";
+import Breadcrumb from "../../../Common/Breadcrumb.jsx";
 
 const AdminCourseDetails = () => {
   const { id } = useParams();
@@ -11,6 +13,7 @@ const AdminCourseDetails = () => {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -31,12 +34,14 @@ const AdminCourseDetails = () => {
     }
   };
 
-  const handleDeleteCourse = async () => {
-    if (!confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
-      return;
-    }
+  const handleDeleteCourse = () => {
+    setDeleteModalOpen(true);
+  };
 
+  const confirmDeleteCourse = async () => {
     setDeleting(true);
+    setDeleteModalOpen(false);
+    
     try {
       const token = Cookies.get("neo_code_jwt_token");
       const response = await axios.delete(`${API_BASE_URL}/api/admin/courses/delete/${id}`, {
@@ -102,32 +107,13 @@ const AdminCourseDetails = () => {
     <div className="bg-black/95 min-h-screen">
       <Header />
       <div className="pt-28 px-10 max-w-6xl mx-auto">
-        {/* Breadcrumb Navigation */}
-        <nav className="mb-6">
-          <ol className="flex items-center space-x-2 text-sm">
-            <li>
-              <button
-                onClick={() => navigate('/admin')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Admin
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li>
-              <button
-                onClick={() => navigate('/admin/courses')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Course Management
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li className="text-white/70 truncate max-w-xs">
-              {course?.title || 'Loading...'}
-            </li>
-          </ol>
-        </nav>
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Course Management", href: "/admin/courses" },
+            { label: course?.title || 'Loading...' }
+          ]}
+        />
 
         {/* Header */}
         <div className="mb-8">
@@ -263,6 +249,44 @@ const AdminCourseDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center">
+          <div className="w-1/3 bg-gray-800 text-white rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="font-semibold text-xl">Confirm Delete</h1>
+              <button
+                className="text-white hover:text-gray-300"
+                onClick={() => setDeleteModalOpen(false)}
+              >
+                <RxCross2 size={20} />
+              </button>
+            </div>
+            <p className="text-center mb-6">
+              Are you sure you want to delete the course <span className="font-semibold text-blue-400">"{course?.title}"</span>?
+              <br />
+              <span className="text-red-400 text-sm">This action cannot be undone.</span>
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={confirmDeleteCourse}
+                disabled={deleting}
+                className="bg-red-600 text-white rounded-md px-6 py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting..." : "YES, DELETE"}
+              </button>
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleting}
+                className="bg-gray-600 text-white rounded-md px-6 py-2 text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

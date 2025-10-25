@@ -170,4 +170,48 @@ const getUserAnalysisController = async (req, res) => {
   }
 };
 
-export { getAllUsersController, deleteUserController, getUserAnalysisController };
+const updateUserRoleController = async (req, res) => {
+  const { userId } = req.params;
+  const { role } = req.body;
+
+  // Validate role
+  if (!role || !['admin', 'user'].includes(role.toLowerCase())) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid role. Must be 'admin' or 'user'"
+    });
+  }
+
+  try {
+    const updateRoleQuery = `
+      UPDATE users 
+      SET role = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING id, username, email, role
+    `;
+    
+    const result = await pool.query(updateRoleQuery, [role.toLowerCase(), userId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `User role updated to ${role}`,
+      user: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+export { getAllUsersController, deleteUserController, getUserAnalysisController, updateUserRoleController };

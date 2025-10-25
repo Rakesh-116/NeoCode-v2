@@ -5,6 +5,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 import Header from "../Header";
+import Breadcrumb from "../../Common/Breadcrumb";
 import { tags as availableTags } from "../../Common/constants";
 
 const CreateBlog = () => {
@@ -87,6 +88,12 @@ const CreateBlog = () => {
     <div className="min-h-screen bg-black/95">
       <Header />
       <div className="pt-28 px-10 text-white">
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Create New Blog" }
+          ]}
+        />
         <h1 className="text-xl font-bold mb-4">Create New Blog</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">

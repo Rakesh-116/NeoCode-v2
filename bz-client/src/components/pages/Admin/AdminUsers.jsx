@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { LuTrash2 } from "react-icons/lu";
 import { RxCross2 } from "react-icons/rx";
-import { FaCaretDown } from "react-icons/fa";
+import { FaCaretDown, FaArrowLeft } from "react-icons/fa";
 import { Oval } from "react-loader-spinner"; // make sure you have this installed
 import Header from "../Header";
+import Breadcrumb from "../../Common/Breadcrumb";
 
 const getAllUsersApiStatusConstant = {
   initial: "INITIAL",
@@ -26,7 +28,7 @@ const renderLoader = () => (
   </div>
 );
 
-const UserDataCard = ({ userDetails, onRequestDelete }) => {
+const UserDataCard = ({ userDetails, onRequestDelete, onRoleChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -58,9 +60,14 @@ const UserDataCard = ({ userDetails, onRequestDelete }) => {
         <div className="flex space-x-2 items-start">
           {isOpen && (
             <>
-              <button className="border border-green-400 px-2 py-1 rounded-md text-green-400 text-[12px] hover:bg-green-400/10 transition-colors">
-                Edit Role to {userDetails.role === "admin" ? "User" : "Admin"}
-              </button>
+              <select
+                value={userDetails.role}
+                onChange={(e) => onRoleChange(userDetails.id, e.target.value)}
+                className="border border-green-400 px-2 py-1 rounded-md text-green-400 text-[12px] bg-black/80 hover:bg-green-400/10 transition-colors focus:outline-none focus:ring-1 focus:ring-green-400"
+              >
+                <option value="user" className="bg-black text-green-400">User</option>
+                <option value="admin" className="bg-black text-green-400">Admin</option>
+              </select>
               <button
                 onClick={() => window.open(`/admin/users/analysis/${userDetails.id}`, '_blank')}
                 className="border border-blue-400 px-2 py-1 rounded-md text-blue-400 text-[12px] hover:bg-blue-400/10 transition-colors"
@@ -105,6 +112,7 @@ const UserDataCard = ({ userDetails, onRequestDelete }) => {
 };
 
 const AdminUsers = () => {
+  const navigate = useNavigate();
   const [usersData, setUsersData] = useState([]);
   const [apiStatus, setApiStatus] = useState(
     getAllUsersApiStatusConstant.initial
@@ -112,6 +120,10 @@ const AdminUsers = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [warningMessage, setWarningMessage] = useState("");
   const [toDeleteId, setToDeleteId] = useState(null);
+  
+  // Role change modal state
+  const [roleChangeModalOpen, setRoleChangeModalOpen] = useState(false);
+  const [roleChangeData, setRoleChangeData] = useState({ userId: null, newRole: "", username: "" });
 
   useEffect(() => {
     fetchAllUsers();
@@ -156,6 +168,51 @@ const AdminUsers = () => {
     }
   };
 
+  const handleRoleChange = (userId, newRole) => {
+    // Find user to get username for confirmation
+    const user = usersData.find(u => u.id === userId);
+    if (user && user.role !== newRole) {
+      setRoleChangeData({
+        userId,
+        newRole,
+        username: user.username
+      });
+      setRoleChangeModalOpen(true);
+    }
+  };
+
+  const confirmRoleChange = async () => {
+    const token = Cookies.get("neo_code_jwt_token");
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+    
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/users/role/${roleChangeData.userId}`,
+        { role: roleChangeData.newRole },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      // Update local state immediately for better UX
+      setUsersData(prevUsers => 
+        prevUsers.map(user => 
+          user.id === roleChangeData.userId ? { ...user, role: roleChangeData.newRole } : user
+        )
+      );
+      
+      setRoleChangeModalOpen(false);
+      setRoleChangeData({ userId: null, newRole: "", username: "" });
+    } catch (err) {
+      console.error("Error updating role:", err);
+      alert("Failed to update user role. Please try again.");
+      setRoleChangeModalOpen(false);
+      
+      // Reset the dropdown to original value by refetching
+      await fetchAllUsers();
+    }
+  };
+
   const renderFailure = () => (
     <div className="text-center text-red-500 py-20 mt-28">
       Failed to load users.{" "}
@@ -172,6 +229,7 @@ const AdminUsers = () => {
           key={user.id}
           userDetails={user}
           onRequestDelete={handleRequestDelete}
+          onRoleChange={handleRoleChange}
         />
       ))}
     </div>
@@ -181,6 +239,13 @@ const AdminUsers = () => {
     <div>
       <Header />
       <div className="bg-black/95 min-h-screen pt-28 px-10">
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "User Management" }
+          ]}
+        />
+        
         <h1 className="text-white text-[40px]">Users Data</h1>
         {(() => {
           switch (apiStatus) {
@@ -195,6 +260,7 @@ const AdminUsers = () => {
           }
         })()}
 
+        {/* Delete Confirmation Modal */}
         {modalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center">
             <div className="w-1/3 bg-gray-800 text-white rounded-lg p-4">
@@ -215,12 +281,54 @@ const AdminUsers = () => {
                     setModalOpen(false);
                     setToDeleteId(null);
                   }}
-                  className="bg-indigo-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition-colors"
+                  className="bg-red-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-red-700 transition-colors"
                 >
                   YES
                 </button>
                 <button
                   onClick={() => setModalOpen(false)}
+                  className="bg-gray-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  NO
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Role Change Confirmation Modal */}
+        {roleChangeModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center">
+            <div className="w-1/3 bg-gray-800 text-white rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h1 className="font-semibold text-xl">Confirm Role Change</h1>
+                <button
+                  className="text-white"
+                  onClick={() => {
+                    setRoleChangeModalOpen(false);
+                    // Reset to original role by refetching
+                    fetchAllUsers();
+                  }}
+                >
+                  <RxCross2 />
+                </button>
+              </div>
+              <p className="text-center mb-6">
+                Are you sure you want to change <span className="font-semibold text-blue-400">{roleChangeData.username}</span>'s role to <span className="font-semibold text-green-400 capitalize">{roleChangeData.newRole}</span>?
+              </p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={confirmRoleChange}
+                  className="bg-green-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-green-700 transition-colors"
+                >
+                  YES
+                </button>
+                <button
+                  onClick={() => {
+                    setRoleChangeModalOpen(false);
+                    // Reset to original role by refetching
+                    fetchAllUsers();
+                  }}
                   className="bg-gray-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-700 transition-colors"
                 >
                   NO

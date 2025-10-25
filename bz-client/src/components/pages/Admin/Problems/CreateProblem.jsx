@@ -4,14 +4,15 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import Editor from "@monaco-editor/react";
 
-import Header from "../Header";
+import Header from "../../Header";
+import Breadcrumb from "../../../Common/Breadcrumb";
 import {
   categories,
   difficultyLevels,
   languages,
   difficultyLevelsProperties,
   categoriesList,
-} from "../../Common/constants";
+} from "../../../Common/constants";
 
 const CreateProblem = () => {
   const [solutionLanguage, setSolutionLanguage] = useState(languages[1]);
@@ -47,6 +48,7 @@ const CreateProblem = () => {
     explaination: "",
     category: selectedCategories,
     solution: "",
+    hidden: false,
   });
 
   const toggleCategory = (category) => {
@@ -86,29 +88,36 @@ const CreateProblem = () => {
   };
 
   const handleInputChange = (e, field, nestedField = null) => {
+    const { value, type, checked } = e.target;
+    
     if (field === "constraints") {
       setFormData({
         ...formData,
-        constraints: e.target.value.split(",").map((item) => item.trim()),
+        constraints: value.split(",").map((item) => item.trim()),
       });
     } else if (field === "difficulty") {
       setFormData({
         ...formData,
-        difficulty: e.target.value,
-        score: difficultyLevelsProperties[e.target.value.toLowerCase()].score,
+        difficulty: value,
+        score: difficultyLevelsProperties[value.toLowerCase()].score,
+      });
+    } else if (field === "hidden") {
+      setFormData({
+        ...formData,
+        hidden: checked,
       });
     } else if (nestedField) {
       setFormData({
         ...formData,
         [field]: {
           ...formData[field],
-          [nestedField]: e.target.value,
+          [nestedField]: value,
         },
       });
     } else {
       setFormData({
         ...formData,
-        [field]: e.target.value,
+        [field]: value,
       });
     }
   };
@@ -206,6 +215,13 @@ const CreateProblem = () => {
     <div className="min-h-screen bg-black/95">
       <Header />
       <div className="max-w-4xl mx-auto p-6 pt-28">
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Problems", href: "/admin/problems" },
+            { label: "Create New Problem" }
+          ]}
+        />
         <h1 className="text-2xl font-bold mb-6 text-white">
           Create New Problem
         </h1>
@@ -416,20 +432,37 @@ const CreateProblem = () => {
 
           {/* Problem Settings */}
           <div className="bg-white/5 p-6 rounded-lg">
-            <label className="block text-sm font-medium mb-1 text-white">
-              Difficulty
-            </label>
-            <select
-              value={formData.difficulty}
-              onChange={(e) => handleInputChange(e, "difficulty")}
-              className="w-full p-2 border bg-white/10 text-white border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {difficultyLevels.map((level) => (
-                <option key={level} value={level} className="text-black">
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                </option>
-              ))}
-            </select>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-white">
+                  Difficulty
+                </label>
+                <select
+                  value={formData.difficulty}
+                  onChange={(e) => handleInputChange(e, "difficulty")}
+                  className="w-full p-2 border bg-white/10 text-white border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {difficultyLevels.map((level) => (
+                    <option key={level} value={level} className="text-black">
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="hidden"
+                  checked={formData.hidden}
+                  onChange={(e) => handleInputChange(e, "hidden")}
+                  className="w-4 h-4 text-blue-600 bg-white/10 border-gray-700 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="hidden" className="text-sm font-medium text-white">
+                  Hide this problem (make it invisible to users)
+                </label>
+              </div>
+            </div>
           </div>
 
           <div>

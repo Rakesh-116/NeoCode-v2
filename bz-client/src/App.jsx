@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import Register from "./components/pages/Auth/Register";
 import Login from "./components/pages/Auth/Login";
@@ -19,7 +21,7 @@ import CourseDetails from "./components/pages/Courses/CourseDetails";
 import AdminRoute from "./components/pages/Auth/AdminRoute";
 import AdminDashboard from "./components/pages/Admin/AdminDashboard";
 import AdminUsers from "./components/pages/Admin/AdminUsers";
-import CreateProblem from "./components/pages/Admin/CreateProblem";
+import CreateProblem from "./components/pages/Admin/Problems/CreateProblem";
 import CreateBlog from "./components/pages/Admin/CreateBlog";
 import BlogPage from "./components/pages/Blogs/BlogPage";
 import CreateCourse from "./components/pages/Admin/Courses/CreateCourse";
@@ -27,6 +29,8 @@ import CourseList from "./components/pages/Admin/Courses/CourseList";
 import AdminCourseDetails from "./components/pages/Admin/Courses/AdminCourseDetails";
 import EditCourse from "./components/pages/Admin/Courses/EditCourse";
 import AdminUserAnalysis from "./components/pages/Admin/AdminUserAnalysis";
+import AdminProblemManagement from "./components/pages/Admin/Problems/AdminProblemManagement";
+import EditProblem from "./components/pages/Admin/Problems/EditProblem";
 
 function App() {
   return (
@@ -50,7 +54,9 @@ function App() {
           {/* Admin-only Route */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/newproblem" element={<CreateProblem />} />
+            <Route path="/admin/problems" element={<AdminProblemManagement />} />
+            <Route path="/admin/createproblem" element={<CreateProblem />} />
+            <Route path="/admin/editproblem/:id" element={<EditProblem />} />
             <Route path="/admin/newblog" element={<CreateBlog />} />
             <Route path="/admin/courses" element={<CourseList />} />
             <Route path="/admin/courses/:id" element={<AdminCourseDetails />} />
@@ -62,6 +68,19 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </UserProvider>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        style={{ zIndex: 9999 }}
+      />
     </BrowserRouter>
   );
 }

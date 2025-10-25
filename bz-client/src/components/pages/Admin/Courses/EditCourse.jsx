@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import axios from "axios";
 
 import Header from "../../Header.jsx";
+import Breadcrumb from "../../../Common/Breadcrumb.jsx";
 import { categoriesList, difficultyLevelsProperties } from "../../../Common/constants.js";
 
 const EditCourse = () => {
@@ -148,76 +149,15 @@ const EditCourse = () => {
     <div className="min-h-screen bg-black/95">
       <Header />
       <div className="max-w-5xl mx-auto p-6 pt-28">
-        {/* Breadcrumb Navigation */}
-        <nav className="mb-6">
-          <ol className="flex items-center space-x-2 text-sm">
-            <li>
-              <button
-                onClick={() => navigate('/admin')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Admin
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li>
-              <button
-                onClick={() => navigate('/admin/courses')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Course Management
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li>
-              <button
-                onClick={() => navigate(`/admin/courses/${id}`)}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                {course?.title || 'Course'}
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li className="text-white/70">
-              Edit Course
-            </li>
-          </ol>
-        </nav>
-        {/* Breadcrumb Navigation */}
-        <nav className="mb-6">
-          <ol className="flex items-center space-x-2 text-sm">
-            <li>
-              <button
-                onClick={() => navigate('/admin')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Admin
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li>
-              <button
-                onClick={() => navigate('/admin/courses')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Course Management
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li>
-              <button
-                onClick={() => navigate(`/admin/courses/${id}`)}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                {course?.title || 'Course'}
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li className="text-white/70">
-              Edit Course
-            </li>
-          </ol>
-        </nav>
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Course Management", href: "/admin/courses" },
+            { label: course?.title || 'Course', href: `/admin/courses/${id}` },
+            { label: "Edit Course" }
+          ]}
+        />
+        
         <div className="mb-6">
           <button
             onClick={() => navigate("/admin/courses")}

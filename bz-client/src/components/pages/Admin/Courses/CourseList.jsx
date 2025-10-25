@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { FaArrowLeft } from "react-icons/fa";
 
 import Header from "../../Header.jsx";
+import Breadcrumb from "../../../Common/Breadcrumb";
 
 const CourseList = () => {
   const navigate = useNavigate();
@@ -35,6 +37,13 @@ const CourseList = () => {
     <div className="bg-black/95 min-h-screen text-white">
       <Header />
       <div className="mt-28 px-10">
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Course Management" }
+          ]}
+        />
+        
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold">Courses</h1>
           <button

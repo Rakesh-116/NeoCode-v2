@@ -4,6 +4,9 @@ import {
   createProblemController,
   deleteProblemController,
   getAllProblemsForCourseController,
+  getProblemByIdController,
+  updateProblemController,
+  toggleProblemVisibilityController,
 } from "../controllers/problems.admin.controller.js";
 
 const problemsRoute = Router();
@@ -23,6 +26,27 @@ problemsRoute.get(
   "/all",
   userAuthentication,
   getAllProblemsForCourseController
+);
+
+// Get single problem by ID
+problemsRoute.get(
+  "/:id",
+  userAuthentication,
+  getProblemByIdController
+);
+
+// Update problem
+problemsRoute.put(
+  "/update/:id",
+  userAuthentication,
+  updateProblemController
+);
+
+// Toggle problem visibility
+problemsRoute.patch(
+  "/visibility/:id",
+  userAuthentication,
+  toggleProblemVisibilityController
 );
 
 export default problemsRoute;

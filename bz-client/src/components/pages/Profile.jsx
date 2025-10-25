@@ -204,7 +204,7 @@ const Profile = () => {
                         <span className="text-green-400 font-semibold">{category.total_points}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-white/70 text-sm">Problems:</span>
+                        <span className="text-white/70 text-sm">Problems Solved:</span>
                         <span className="text-white font-semibold">{category.problems_solved}</span>
                       </div>
                       <div className="flex justify-between">

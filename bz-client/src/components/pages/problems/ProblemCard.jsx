@@ -2,10 +2,12 @@ import React from "react";
 import { LuTrash2 } from "react-icons/lu";
 
 import { difficultyLevelsProperties } from "../../Common/constants";
+import { useUser } from "../../../context/UserContext";
 
 const ProblemCard = ({ problemDetails, onProblemSelect, onRequestDelete }) => {
   // console.log(problemDetails);
   const { id, title, score, difficulty } = problemDetails;
+  const { userData } = useUser();
   return (
     <div className="w-full flex justify-center items-center space-x-2 my-3">
       <button
@@ -27,14 +29,16 @@ const ProblemCard = ({ problemDetails, onProblemSelect, onRequestDelete }) => {
           </p>
         </div>
       </button>
-      <button
-        className="text-red-500 border border-red-500 rounded-lg p-1 hover:text-red-600 transition-colors duration-300"
-        onClick={() =>
-          onRequestDelete(id, `Are you sure you want to delete '${title}'?`)
-        }
-      >
-        <LuTrash2 />
-      </button>
+      {userData && userData.role === "admin" && (
+        <button
+          className="text-red-500 border border-red-500 rounded-lg p-1 hover:text-red-600 transition-colors duration-300"
+          onClick={() =>
+            onRequestDelete(id, `Are you sure you want to delete '${title}'?`)
+          }
+        >
+          <LuTrash2 />
+        </button>
+      )}
     </div>
   );
 };

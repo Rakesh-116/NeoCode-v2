@@ -38,14 +38,40 @@ NeoCode is a full-stack, developer-focused coding platform that allows users to 
   5. Return result.
 
 ### 📦 Modular Features
-- 📝 **Blogs** (Admin-only CRUD)
-- 💡 **Problems** (Admin-only CRUD)
-- 📤 **Submissions** (View and manage)
+- 📝 **Blogs** (Admin-only CRUD with rich text editor)
+- 💡 **Problems** (Admin-only CRUD with category organization)
+- 📤 **Submissions** (View and manage with detailed analytics)
 - 💻 **My Code** (Test any code anytime with snippet-saving)
+- 🎓 **Course Management** (Complete course platform with enrollment)
+- 🧠 **AI Complexity Analysis** (Gemini-powered Big O notation detection)
+- 📊 **Category Points System** (Advanced progress tracking with charts)
+- 🏆 **Leaderboards** (Category-wise ranking system)
+- 👥 **User Analytics** (Comprehensive admin dashboard)
+- 🎯 **Smart Caching** (Intelligent complexity and code caching)
 
 ### 🎯 Smart Execution Pipeline
 - Unique problem IDs mapped to expected outputs in DB.
 - Submission compared and judged automatically.
+
+### 🤖 AI-Powered Features
+- **Gemini AI Integration** for real-time complexity analysis
+- **Big O Notation Detection** with intelligent caching
+- **Smart Code Analysis** across multiple programming languages
+- **LRU Cache Management** for optimal performance
+
+### 🎓 Course Management System
+- **Complete Course Platform** with problem assignments
+- **Student Enrollment** and progress tracking
+- **Course-specific Submissions** and analytics
+- **Category-based Organization** for better learning paths
+- **Points-based Progression** system
+
+### 📊 Advanced Analytics Dashboard
+- **Category Points System** with visual progress tracking
+- **Interactive Charts** using Chart.js for data visualization
+- **Leaderboard System** for competitive programming
+- **Difficulty-based Statistics** and completion tracking
+- **Real-time Progress Updates** across all categories
 
 ### 🧾 Tech Stack
 
@@ -56,6 +82,10 @@ NeoCode is a full-stack, developer-focused coding platform that allows users to 
 | Authentication| JWT                                          |
 | Code Execution| Docker (GCC, Python, Java containers)        |
 | DB            | PostgreSQL                                   |
+| AI Integration| Google Gemini AI                             |
+| Data Visualization | Chart.js, React Chart.js 2                 |
+| Rich Text     | Quill.js, React Quill                       |
+| Animations    | Framer Motion, React Particles               |
 | Styling       | Tailwind CSS                                 |
 | Code Editor   | Monaco Editor                                |
 
@@ -63,13 +93,47 @@ NeoCode is a full-stack, developer-focused coding platform that allows users to 
 
 ## ✨ Highlights
 
-- ✅ Reusable Docker containers for efficient code execution.
-- 🎯 Role-based access control.
-- 📄 Full CRUD for blogs, problems, users, and submissions.
-- 🧪 Output matched against PostgreSQL-stored test cases.
-- 🧠 Smart execution logic with reinitialization of containers.
-- 🔄 Pagination implemented across all lists (problems, blogs, submissions).
-- 🎨 Clean and modern UI using Tailwind CSS.
+- ✅ **Reusable Docker containers** for efficient code execution.
+- 🎯 **Role-based access control** with comprehensive admin dashboard.
+- 📄 **Full CRUD operations** for blogs, problems, users, courses, and submissions.
+- 🧪 **Automated judging** with output matching against PostgreSQL test cases.
+- 🧠 **AI-Powered Complexity Analysis** using Google Gemini for Big O notation.
+- 🎓 **Complete Course Management** with enrollment and progress tracking.
+- � **Advanced Analytics** with category points, leaderboards, and visual charts.
+- 🔄 **Intelligent Caching** for complexity analysis and code persistence.
+- 🎨 **Modern UI/UX** with Tailwind CSS, animations, and responsive design.
+- 🏆 **Category-wise Progress** tracking with detailed statistics and achievements.
+
+---
+
+## 🆕 Advanced Features
+
+### 🧠 Complexity Analysis
+- **Real-time AI Analysis**: Powered by Google Gemini AI for instant Big O notation detection
+- **Multi-language Support**: Analyze Java, Python, C++, JavaScript, and C code
+- **Smart Caching**: LRU cache system stores previous analyses for faster results
+- **Visual Integration**: Seamless integration with code editor for instant feedback
+
+### 📊 Category Points & Analytics
+- **Category-wise Tracking**: Monitor progress across different algorithm categories
+- **Visual Dashboard**: Interactive charts showing progress distribution and statistics  
+- **Leaderboard System**: Compete with other users in category-specific rankings
+- **Achievement System**: Track completion percentages and earned points
+- **Detailed Analytics**: Difficulty breakdown and problem-solving patterns
+
+### 🎓 Course Management
+- **Structured Learning**: Organized courses with curated problem sets
+- **Progress Tracking**: Monitor student advancement through course materials
+- **Enrollment System**: Easy course registration and management
+- **Course Analytics**: Comprehensive statistics for instructors and students
+- **Points Integration**: Earn category points through course completion
+
+### 🎨 Enhanced User Experience  
+- **Modern UI**: Clean, responsive design with Tailwind CSS
+- **Rich Animations**: Smooth transitions using Framer Motion
+- **Interactive Elements**: Particle effects and dynamic visual feedback
+- **Code Persistence**: Automatic saving of code progress per problem
+- **Multi-theme Support**: Customizable editor themes and preferences
 
 ---
 
@@ -225,11 +289,10 @@ npm run dev
 Create a .env file inside the /bz-server folder and add the following variables:
 
 🛠️ Sample .env for /bz-server
-env
+```bash
 PORT=8080
 
 # 🔐 PostgreSQL connection
-```bash
 DB_USER_NAME=your_database_user
 DB_PASS=your_database_password
 DB_HOST=your_database_host_url
@@ -239,6 +302,9 @@ SSL_MODE=require
 
 # 🔑 JWT Auth Secret
 JWT_SECRET_KEY=your_super_secret_key
+
+# 🤖 AI Integration
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ✅ Ready to Use

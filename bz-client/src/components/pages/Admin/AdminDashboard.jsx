@@ -21,12 +21,12 @@ const AdminDashboard = () => {
     //   buttonText: "Go to Blogs",
     //   onClick: () => navigate("/admin/newblog"),
     // },
-    // {
-    //   title: "Manage Problems",
-    //   description: "Add, edit, or delete coding problems for courses and contests.",
-    //   buttonText: "Go to Problems",
-    //   onClick: () => navigate("/admin/problems"),
-    // },
+    {
+      title: "Manage Problems",
+      description: "Add, edit, or delete coding problems for courses and contests.",
+      buttonText: "Go to Problems",
+      onClick: () => navigate("/admin/problems"),
+    },
     {
       title: "Manage Courses",
       description: "Create courses, assign problems, and monitor submissions.",

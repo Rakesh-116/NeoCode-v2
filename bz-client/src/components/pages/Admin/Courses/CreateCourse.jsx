@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { FaArrowLeft } from "react-icons/fa";
 
 import Header from "../../Header.jsx";
+import Breadcrumb from "../../../Common/Breadcrumb.jsx";
 import { categoriesList, difficultyLevelsProperties } from "../../../Common/constants.js";
 
 const CreateCourse = () => {
@@ -80,32 +82,13 @@ const CreateCourse = () => {
     <div className="min-h-screen bg-black/95">
       <Header />
       <div className="max-w-5xl mx-auto p-6 pt-28">
-        {/* Breadcrumb Navigation */}
-        <nav className="mb-6">
-          <ol className="flex items-center space-x-2 text-sm">
-            <li>
-              <button
-                onClick={() => navigate('/admin')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Admin
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li>
-              <button
-                onClick={() => navigate('/admin/courses')}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Course Management
-              </button>
-            </li>
-            <li className="text-white/50">›</li>
-            <li className="text-white/70">
-              Create New Course
-            </li>
-          </ol>
-        </nav>
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Course Management", href: "/admin/courses" },
+            { label: "Create New Course" }
+          ]}
+        />
         
         <h1 className="text-2xl font-bold mb-6 text-white">Create New Course</h1>
 

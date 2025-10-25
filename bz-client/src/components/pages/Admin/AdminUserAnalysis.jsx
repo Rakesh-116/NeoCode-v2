@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { Oval } from "react-loader-spinner";
 import { Pie, Bar } from "react-chartjs-2";
+import { FaArrowLeft } from "react-icons/fa";
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -15,6 +16,7 @@ import {
   ArcElement 
 } from "chart.js";
 import Header from "../Header";
+import Breadcrumb from "../../Common/Breadcrumb";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -291,7 +293,17 @@ const AdminUserAnalysis = () => {
   return (
     <div className="bg-black/95 min-h-screen">
       <Header />
-      <div className="pt-28 px-4 md:px-8 lg:px-12">{renderContent()}</div>
+      <div className="pt-28 px-4 md:px-8 lg:px-12">
+        <Breadcrumb 
+          items={[
+            { label: "Admin Dashboard", href: "/admin" },
+            { label: "Users", href: "/admin/users" },
+            { label: `User Analysis - ${userAnalysis?.username || userId}` }
+          ]}
+        />
+        
+        {renderContent()}
+      </div>
     </div>
   );
 };

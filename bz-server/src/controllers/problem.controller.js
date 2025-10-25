@@ -11,6 +11,9 @@ const getAllProblemsController = async (req, res) => {
   const conditions = [];
   const values = [];
 
+  // Always filter out hidden problems for non-admin users
+  conditions.push(`(hidden IS NULL OR hidden = false)`);
+
   if (categoryList.length > 0) {
     values.push(categoryList);
     conditions.push(`category @> $${values.length}::text[]`);
@@ -26,8 +29,7 @@ const getAllProblemsController = async (req, res) => {
     conditions.push(`LOWER(title) LIKE $${values.length}`);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
   const orderClause = "ORDER BY id ASC";
   const finalQuery = `${baseQuery} ${whereClause} ${orderClause}`;
 
@@ -52,8 +54,9 @@ const getProblemDetailsController = async (req, res) => {
   const { submission_id } = req.query;
 
   try {
+    // Check if problem exists and is not hidden for non-admin users
     const problemResult = await pool.query(
-      "SELECT * FROM Problem WHERE id = $1",
+      "SELECT * FROM Problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)",
       [problemId]
     );
 

@@ -120,9 +120,9 @@ const CourseDetails = () => {
                 <p className="text-white/70 text-lg mb-4">{course.description}</p>
                 
                 <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full">
+                  {/* <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full">
                     {course.category}
-                  </span>
+                  </span> */}
                   <span className="text-white/60">
                     {course.total_problems} Problems
                   </span>
