@@ -9,6 +9,10 @@ NeoCode is a full-stack, developer-focused coding platform that allows users to 
 
 ---
 
+https://github.com/user-attachments/assets/9a86aaae-2e85-4fa0-9990-0fd6b6b11bb3
+
+---
+
 ## 🧱 Project Overview
 
 ### 🔐 Role-Based Authentication
