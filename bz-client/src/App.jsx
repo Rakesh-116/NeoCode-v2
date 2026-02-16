@@ -32,7 +32,7 @@ import AdminUserAnalysis from "./components/pages/Admin/AdminUserAnalysis";
 import AdminProblemManagement from "./components/pages/Admin/Problems/AdminProblemManagement";
 import EditProblem from "./components/pages/Admin/Problems/EditProblem";
 
-// Hi Vata vata
+// Hi vaatsav
 function App() {
     return (
         <BrowserRouter>
