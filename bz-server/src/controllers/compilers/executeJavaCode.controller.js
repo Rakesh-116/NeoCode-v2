@@ -3,6 +3,7 @@ import { dirname, join } from "path";
 import fs from "fs";
 import { exec } from "child_process";
 import { hrtime } from "process";
+import config from "../../config/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,7 +56,7 @@ const executeJavaCode = async (sourceCode, input, testId) => {
       const startTime = hrtime();
 
       exec(
-        'docker ps -q --filter "name=java-container"',
+        `docker ps -q --filter "name=${config.JAVA_CONTAINER_NAME}"`,
         (psError, psStdout) => {
           if (psError) {
             return reject({
@@ -65,7 +66,7 @@ const executeJavaCode = async (sourceCode, input, testId) => {
           }
 
           if (!psStdout) {
-            exec("docker start java-container", (startError) => {
+            exec(`docker start ${config.JAVA_CONTAINER_NAME}`, (startError) => {
               if (startError) {
                 return reject({
                   success: false,
@@ -76,7 +77,7 @@ const executeJavaCode = async (sourceCode, input, testId) => {
           }
 
           exec(
-            `docker exec java-container mkdir -p ${executionDirectory} && docker cp ${LOCAL_JAVA_FILE} java-container:${executionDirectory}/NeoCode.java && docker cp ${LOCAL_INPUT_FILE} java-container:${executionDirectory}/input.txt`,
+            `docker exec ${config.JAVA_CONTAINER_NAME} mkdir -p ${executionDirectory} && docker cp ${LOCAL_JAVA_FILE} ${config.JAVA_CONTAINER_NAME}:${executionDirectory}/NeoCode.java && docker cp ${LOCAL_INPUT_FILE} ${config.JAVA_CONTAINER_NAME}:${executionDirectory}/input.txt`,
             (copyError) => {
               if (copyError) {
                 fs.rmSync(LOCAL_WORKSPACE, { recursive: true, force: true });
@@ -88,7 +89,7 @@ const executeJavaCode = async (sourceCode, input, testId) => {
 
               // Compile + Run with timeout
               exec(
-                `docker exec -i java-container sh -c "javac ${executionDirectory}/NeoCode.java && timeout 3 java -cp ${executionDirectory} NeoCode < ${executionDirectory}/input.txt"`,
+                `docker exec -i ${config.JAVA_CONTAINER_NAME} sh -c "javac ${executionDirectory}/NeoCode.java && timeout 3 java -cp ${executionDirectory} NeoCode < ${executionDirectory}/input.txt"`,
                 { timeout: 4000 },
                 (error, stdout, stderr) => {
                   const endTime = hrtime(startTime);
@@ -98,7 +99,7 @@ const executeJavaCode = async (sourceCode, input, testId) => {
 
                   const cleanUp = () => {
                     exec(
-                      `docker exec java-container rm -rf ${executionDirectory}`,
+                      `docker exec ${config.JAVA_CONTAINER_NAME} rm -rf ${executionDirectory}`,
                       () => {
                         fs.rmSync(LOCAL_WORKSPACE, {
                           recursive: true,

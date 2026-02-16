@@ -3,6 +3,7 @@ import { dirname, join } from "path";
 import fs from "fs";
 import { exec } from "child_process";
 import { hrtime } from "process";
+import config from "../../config/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,9 +45,9 @@ builtins.__import__ = secure_import
 
       const startTime = hrtime();
 
-      // Search for python-container
+      // Search for the python container configured in env
       exec(
-        'docker ps -q --filter "name=python-container"',
+        `docker ps -q --filter "name=${config.PYTHON_CONTAINER_NAME}"`,
         (psError, psStdout) => {
           if (psError) {
             return reject({
@@ -55,9 +56,9 @@ builtins.__import__ = secure_import
             });
           }
 
-          // Start the python-container if not started
+          // Start the container if not started
           if (!psStdout) {
-            exec("docker start python-container", (startError) => {
+            exec(`docker start ${config.PYTHON_CONTAINER_NAME}`, (startError) => {
               if (startError) {
                 return reject({
                   success: false,
@@ -69,7 +70,7 @@ builtins.__import__ = secure_import
 
           // Copy files and execute
           exec(
-            `docker exec python-container mkdir -p ${executionDirectory} && docker cp ${PYTHON_WORKER_PATH} python-container:/${executionDirectory}/NeoCode.py && docker cp ${INPUT_FILE_PATH} python-container:/${executionDirectory}/input.txt`,
+            `docker exec ${config.PYTHON_CONTAINER_NAME} mkdir -p ${executionDirectory} && docker cp ${PYTHON_WORKER_PATH} ${config.PYTHON_CONTAINER_NAME}:/${executionDirectory}/NeoCode.py && docker cp ${INPUT_FILE_PATH} ${config.PYTHON_CONTAINER_NAME}:/${executionDirectory}/input.txt`,
             (copyError) => {
               if (copyError) {
                 fs.rmSync(LOCAL_WORKSPACE, { recursive: true, force: true });
@@ -80,7 +81,7 @@ builtins.__import__ = secure_import
               }
 
               exec(
-                `docker exec -i python-container sh -c "timeout 3 python3 /${executionDirectory}/NeoCode.py < /${executionDirectory}/input.txt"`,
+                `docker exec -i ${config.PYTHON_CONTAINER_NAME} sh -c "timeout 3 python3 /${executionDirectory}/NeoCode.py < /${executionDirectory}/input.txt"`,
                 { timeout: 4000 },
                 (error, stdout, stderr) => {
                   const endTime = hrtime(startTime);
@@ -89,7 +90,7 @@ builtins.__import__ = secure_import
                   } ms`;
 
                   exec(
-                    `docker exec python-container rm -rf ${executionDirectory}`,
+                    `docker exec ${config.PYTHON_CONTAINER_NAME} rm -rf ${executionDirectory}`,
                     () => {
                       fs.rmSync(LOCAL_WORKSPACE, {
                         recursive: true,

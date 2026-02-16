@@ -3,6 +3,7 @@ import { dirname, join } from "path";
 import fs from "fs";
 import { exec } from "child_process";
 import { hrtime } from "process";
+import config from "../../config/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,7 +33,7 @@ const executeCppCode = async (sourceCode, input, testId) => {
       const startTime = hrtime();
 
       exec(
-        'docker ps -q --filter "name=cpp-container"',
+        `docker ps -q --filter "name=${config.CPP_CONTAINER_NAME}"`,
         (psError, psStdout) => {
           if (psError) {
             console.error("Docker ps error:", psError);
@@ -44,7 +45,7 @@ const executeCppCode = async (sourceCode, input, testId) => {
 
           // Start container if not running
           if (!psStdout) {
-            exec("docker start cpp-container", (startError) => {
+            exec(`docker start ${config.CPP_CONTAINER_NAME}`, (startError) => {
               if (startError) {
                 console.error("Container start error:", startError);
                 return reject({
@@ -57,7 +58,7 @@ const executeCppCode = async (sourceCode, input, testId) => {
 
           // Create isolated workspace inside container and copy files
           exec(
-            `docker exec cpp-container mkdir -p ${executionDirectory} && docker cp ${LOCAL_CPP_FILE} cpp-container:${executionDirectory}/NeoCode.cpp && docker cp ${LOCAL_INPUT_FILE} cpp-container:${executionDirectory}/input.txt`,
+            `docker exec ${config.CPP_CONTAINER_NAME} mkdir -p ${executionDirectory} && docker cp ${LOCAL_CPP_FILE} ${config.CPP_CONTAINER_NAME}:${executionDirectory}/NeoCode.cpp && docker cp ${LOCAL_INPUT_FILE} ${config.CPP_CONTAINER_NAME}:${executionDirectory}/input.txt`,
             (copyError) => {
               if (copyError) {
                 console.error("File copy error: ", copyError);
@@ -75,7 +76,7 @@ const executeCppCode = async (sourceCode, input, testId) => {
 
               // Compile and execute inside isolated directory
               exec(
-                `docker exec -i cpp-container sh -c "g++ ${executionDirectory}/NeoCode.cpp -o ${executionDirectory}/NeoCode.out && ${executionDirectory}/NeoCode.out < ${executionDirectory}/input.txt"`,
+                `docker exec -i ${config.CPP_CONTAINER_NAME} sh -c "g++ ${executionDirectory}/NeoCode.cpp -o ${executionDirectory}/NeoCode.out && ${executionDirectory}/NeoCode.out < ${executionDirectory}/input.txt"`,
                 { timeout: 4000 },
                 (error, stdout, stderr) => {
                   const endTime = hrtime(startTime);
@@ -85,7 +86,7 @@ const executeCppCode = async (sourceCode, input, testId) => {
 
                   // Clean up
                   exec(
-                    `docker exec cpp-container rm -rf ${executionDirectory}`,
+                    `docker exec ${config.CPP_CONTAINER_NAME} rm -rf ${executionDirectory}`,
                     () => {
                       fs.rmSync(LOCAL_WORKSPACE, {
                         recursive: true,
