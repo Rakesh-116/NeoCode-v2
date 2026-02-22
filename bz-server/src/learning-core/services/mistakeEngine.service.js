@@ -9,12 +9,15 @@
  * 2. Identifies recurring mistake patterns
  * 3. Provides mistake-specific feedback
  * 4. Tracks mistake resolution
+ * 5. Generates AI-powered coaching (Phase 2)
  *
  * Works with mistake_catalog and user_mistakes_log tables.
  * ============================================================================
  */
 
 import { pool } from "../../database/connect.db.js";
+import llmGateway from "../../ai/index.js";
+import config from "../../config/index.js";
 
 class MistakeEngineService {
     /**
@@ -354,6 +357,164 @@ class MistakeEngineService {
         } catch (error) {
             console.error("Error checking improvement:", error);
             throw error;
+        }
+    }
+
+    /**
+     * ========================================================================
+     * AI-POWERED COACHING METHODS (Phase 2)
+     * ========================================================================
+     */
+
+    /**
+     * Generate AI coaching based on user's mistake patterns
+     * @param {string} userId
+     * @param {Object} options - Optional filters
+     * @returns {Promise<Object>} AI coaching response
+     */
+    async getAICoaching(userId, options = {}) {
+        // Check if AI coach is enabled
+        if (!config.AI.ENABLE_AI_COACH) {
+            return {
+                success: false,
+                message: "AI Coach is currently disabled. Enable it in config.",
+            };
+        }
+
+        try {
+            // Gather learning context
+            const context = await this.buildCoachingContext(userId, options);
+
+            // Skip if no data
+            if (!context.weakTopics || context.weakTopics.length === 0) {
+                return {
+                    success: true,
+                    message: "Great job! No significant weak areas detected yet. Keep practicing!",
+                    context,
+                };
+            }
+
+            // Generate AI response
+            const aiResponse = await llmGateway.generate({
+                purpose: "coach",
+                context,
+                provider: options.provider, // Allow provider override
+            });
+
+            // Log AI interaction (optional - for analytics)
+            await this.logAIInteraction(userId, "coach", context, aiResponse);
+
+            return {
+                success: true,
+                coaching: aiResponse,
+                context, // Include context for transparency
+            };
+        } catch (error) {
+            console.error("MistakeEngine AI coaching error:", error.message);
+
+            // Return graceful fallback
+            return {
+                success: false,
+                message: "AI Coach is temporarily unavailable. Check your Learning Profile for detailed analytics.",
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Build context for AI coaching
+     * @param {string} userId
+     * @param {Object} options
+     * @returns {Promise<Object>}
+     */
+    async buildCoachingContext(userId, options = {}) {
+        try {
+            // Get weak topics (from Learning Profile Service)
+            const weakTopicsQuery = `
+        SELECT 
+          topic,
+          total_attempts,
+          correct_count,
+          ROUND((correct_count::DECIMAL / NULLIF(total_attempts, 0)) * 100, 2) as accuracy,
+          ROUND(AVG(time_taken), 2) as avg_time
+        FROM topic_performance
+        WHERE user_id = $1
+          AND total_attempts >= 3
+          AND (correct_count::DECIMAL / NULLIF(total_attempts, 0)) < 0.6
+        ORDER BY total_attempts DESC, accuracy ASC
+        LIMIT 5
+      `;
+            const weakTopicsResult = await pool.query(weakTopicsQuery, [userId]);
+
+            // Get recent mistakes (last 10)
+            const mistakesQuery = `
+        SELECT 
+          uml.mistake_type,
+          uml.topic,
+          uml.severity,
+          uml.detected_at,
+          mc.name as mistake_name,
+          mc.description
+        FROM user_mistakes_log uml
+        JOIN mistake_catalog mc ON uml.mistake_type = mc.mistake_type
+        WHERE uml.user_id = $1
+        ORDER BY uml.detected_at DESC
+        LIMIT 10
+      `;
+            const mistakesResult = await pool.query(mistakesQuery, [userId]);
+
+            // Get recent submissions (last 5)
+            const submissionsQuery = `
+        SELECT 
+          status,
+          score,
+          time_taken,
+          submitted_at
+        FROM evaluation_results
+        WHERE user_id = $1
+        ORDER BY submitted_at DESC
+        LIMIT 5
+      `;
+            const submissionsResult = await pool.query(submissionsQuery, [userId]);
+
+            // Get overall performance stats
+            const statsQuery = `
+        SELECT 
+          COUNT(*) as total_submissions,
+          COUNT(*) FILTER (WHERE status = 'accepted') as accepted_count,
+          ROUND(AVG(score), 2) as avg_score
+        FROM evaluation_results
+        WHERE user_id = $1
+      `;
+            const statsResult = await pool.query(statsQuery, [userId]);
+
+            return {
+                weakTopics: weakTopicsResult.rows,
+                mistakes: mistakesResult.rows,
+                recentSubmissions: submissionsResult.rows,
+                learningProfile: statsResult.rows[0],
+            };
+        } catch (error) {
+            console.error("Error building coaching context:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Log AI interaction for analytics
+     * @param {string} userId
+     * @param {string} purpose
+     * @param {Object} context
+     * @param {string} response
+     */
+    async logAIInteraction(userId, purpose, context, response) {
+        try {
+            // TODO: Create ai_interactions table if analytics needed
+            // For now, just log to console
+            console.log(`📊 AI Interaction: User ${userId} used ${purpose}`);
+        } catch (error) {
+            // Non-critical - don't throw
+            console.warn("Failed to log AI interaction:", error.message);
         }
     }
 }

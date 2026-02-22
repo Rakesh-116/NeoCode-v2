@@ -87,7 +87,7 @@ const LearningProfile = () => {
         return (
             <>
                 <Header />
-                <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="min-h-screen bg-black flex items-center justify-center">
                     <div className="text-xl text-white">Loading your learning profile...</div>
                 </div>
                 <Footer />
@@ -99,7 +99,7 @@ const LearningProfile = () => {
         return (
             <>
                 <Header />
-                <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="min-h-screen bg-black flex items-center justify-center">
                     <div className="text-center">
                         <h2 className="text-2xl font-bold text-red-500 mb-2">Error</h2>
                         <p className="text-white">{error}</p>
@@ -114,24 +114,24 @@ const LearningProfile = () => {
     return (
         <>
             <Header />
-            <div className="min-h-screen bg-gray-900 py-8">
+            <div className="min-h-screen bg-black py-8">
                 <div className="container mx-auto px-4 max-w-6xl">
                     <h1 className="text-4xl font-bold mb-8 text-white">Your Learning Profile</h1>
 
                     {/* Stats Dashboard */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-lg shadow-lg">
-                            <h3 className="text-white/80 text-sm font-medium mb-2">Current Streak</h3>
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-lg hover:border-blue-500/30 transition-all">
+                            <h3 className="text-white/70 text-sm font-medium mb-2">Current Streak</h3>
                             <p className="text-4xl font-bold text-white">{profile?.profile?.streakDays || 0}</p>
-                            <p className="text-sm text-white/70 mt-1">days</p>
+                            <p className="text-sm text-blue-400 mt-1">days</p>
                         </div>
-                        <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 rounded-lg shadow-lg">
-                            <h3 className="text-white/80 text-sm font-medium mb-2">Total Sessions</h3>
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-lg hover:border-green-500/30 transition-all">
+                            <h3 className="text-white/70 text-sm font-medium mb-2">Total Sessions</h3>
                             <p className="text-4xl font-bold text-white">{profile?.profile?.totalSessions || 0}</p>
-                            <p className="text-sm text-white/70 mt-1">practice sessions</p>
+                            <p className="text-sm text-green-400 mt-1">practice sessions</p>
                         </div>
-                        <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 rounded-lg shadow-lg">
-                            <h3 className="text-white/80 text-sm font-medium mb-2">Last Active</h3>
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-lg hover:border-purple-500/30 transition-all">
+                            <h3 className="text-white/70 text-sm font-medium mb-2">Last Active</h3>
                             <p className="text-xl font-semibold text-white">
                                 {profile?.profile?.lastActive
                                     ? new Date(profile.profile.lastActive).toLocaleDateString()
@@ -240,17 +240,17 @@ const LearningProfile = () => {
 
                     {/* Generate Training Plan */}
                     <section className="mb-8">
-                        <div className="bg-gradient-to-r from-green-600 to-blue-600 p-8 rounded-lg shadow-lg">
+                        <div className="bg-white/5 border border-white/10 p-8 rounded-lg hover:border-white/20 transition-all">
                             <h2 className="text-2xl font-semibold mb-2 text-white">
                                 🚀 Ready for Structured Learning?
                             </h2>
-                            <p className="text-white/90 mb-4">
+                            <p className="text-white/70 mb-4">
                                 Generate a personalized 7-day training plan based on your weak topics and learning
                                 patterns.
                             </p>
                             <button
                                 onClick={generatePlan}
-                                className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3 rounded-lg text-lg font-semibold transition-colors shadow-md hover:shadow-lg"
+                                className="bg-white text-black hover:bg-white/90 px-8 py-3 rounded-lg text-lg font-semibold transition-all shadow-lg hover:shadow-white/20"
                             >
                                 Generate 7-Day Training Plan
                             </button>

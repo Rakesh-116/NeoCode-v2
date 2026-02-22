@@ -31,6 +31,7 @@ import EditCourse from "./components/pages/Admin/Courses/EditCourse";
 import AdminUserAnalysis from "./components/pages/Admin/AdminUserAnalysis";
 import AdminProblemManagement from "./components/pages/Admin/Problems/AdminProblemManagement";
 import EditProblem from "./components/pages/Admin/Problems/EditProblem";
+import AiSupportChat from "./components/Common/AiSupportChat";
 
 function App() {
     return (
@@ -68,6 +69,8 @@ function App() {
                     </Route>
                     <Route path="*" element={<NotFound />} />
                 </Routes>
+                {/* Global floating AI support chat — available on all pages */}
+                <AiSupportChat />
             </UserProvider>
             <ToastContainer
                 position="top-right"

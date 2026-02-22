@@ -1,439 +1,722 @@
-# 🚀 NeoCode - Online Code Compiler and Problem Platform
+# 🚀 NeoCode - AI-Powered Learning Platform
 
-NeoCode is a full-stack, developer-focused coding platform that allows users to solve problems, write code, and run it in a secure Docker-based environment. Built with scalability, role-based access, and smooth developer experience in mind.
+> **Transform your coding journey** with personalized AI mentorship, skill-based learning, and validated progress tracking.
 
-![Editor](https://img.shields.io/badge/Editor-Monaco-blue?logo=visualstudiocode)
-![Docker](https://img.shields.io/badge/Containerized-Docker-blue?logo=docker)
-![Auth](https://img.shields.io/badge/Auth-JWT-green?logo=jwt)
-![Styling](https://img.shields.io/badge/Styled%20With-TailwindCSS-blueviolet?logo=tailwind-css)
-
----
-
-https://github.com/user-attachments/assets/9a86aaae-2e85-4fa0-9990-0fd6b6b11bb3
+[![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-green?logo=node.js)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue?logo=postgresql)](https://postgresql.org/)
+[![Docker](https://img.shields.io/badge/Execution-Docker-blue?logo=docker)](https://docker.com/)
+[![AI](https://img.shields.io/badge/AI-Multi--Provider-purple?logo=openai)](https://openai.com/)
 
 ---
 
-## 🧱 Project Overview
+## 📖 Table of Contents
 
-### 🔐 Role-Based Authentication
-- **JWT-based authentication** with user roles.
-- Admin and User roles:
-  - Admin: full CRUD access to Blogs, Problems, Submissions, Users.
-  - User: Can solve problems, write and run code, save snippets.
-
-### 👨‍💻 Online Code Compiler
-- Supported Languages: **Java**, **C++**, **Python**.
-- **Monaco Editor** for modern, VS Code-like coding experience.
-- Save snippets for future use.
-- Support for input-based code execution.
-- Output validated against test cases stored in **PostgreSQL**.
-
-### 🐳 Docker-based Container Reuse
-- Prebuilt language containers:
-  - e.g., C++ uses a GCC-installed container.
-- Containers are **reused**:
-  - Checked on each request whether the container is running.
-  - If not, it is started and reused for multiple executions.
-- Steps:
-  1. Copy code and input to the container.
-  2. Execute code inside the container.
-  3. Extract the output.
-  4. Compare with expected output from database.
-  5. Return result.
-
-### 📦 Modular Features
-- 📝 **Blogs** (Admin-only CRUD with rich text editor)
-- 💡 **Problems** (Admin-only CRUD with category organization)
-- 📤 **Submissions** (View and manage with detailed analytics)
-- 💻 **My Code** (Test any code anytime with snippet-saving)
-- 🎓 **Course Management** (Complete course platform with enrollment)
-- 🧠 **AI Complexity Analysis** (Gemini-powered Big O notation detection)
-- 📊 **Category Points System** (Advanced progress tracking with charts)
-- 🏆 **Leaderboards** (Category-wise ranking system)
-- 👥 **User Analytics** (Comprehensive admin dashboard)
-- 🎯 **Smart Caching** (Intelligent complexity and code caching)
-
-### 🎯 Smart Execution Pipeline
-- Unique problem IDs mapped to expected outputs in DB.
-- Submission compared and judged automatically.
-
-### 🤖 AI-Powered Features
-- **Gemini AI Integration** for real-time complexity analysis
-- **Big O Notation Detection** with intelligent caching
-- **Smart Code Analysis** across multiple programming languages
-- **LRU Cache Management** for optimal performance
-
-### 🎓 Course Management System
-- **Complete Course Platform** with problem assignments
-- **Student Enrollment** and progress tracking
-- **Course-specific Submissions** and analytics
-- **Category-based Organization** for better learning paths
-- **Points-based Progression** system
-
-### 📊 Advanced Analytics Dashboard
-- **Category Points System** with visual progress tracking
-- **Interactive Charts** using Chart.js for data visualization
-- **Leaderboard System** for competitive programming
-- **Difficulty-based Statistics** and completion tracking
-- **Real-time Progress Updates** across all categories
-
-### 🧾 Tech Stack
-
-| Layer         | Technology                                  |
-| ------------- | -------------------------------------------- |
-| Frontend      | React.js, Tailwind CSS, React Router, Monaco |
-| Backend       | Node.js, Express.js                          |
-| Authentication| JWT                                          |
-| Code Execution| Docker (GCC, Python, Java containers)        |
-| DB            | PostgreSQL                                   |
-| AI Integration| Google Gemini AI                             |
-| Data Visualization | Chart.js, React Chart.js 2                 |
-| Rich Text     | Quill.js, React Quill                       |
-| Animations    | Framer Motion, React Particles               |
-| Styling       | Tailwind CSS                                 |
-| Code Editor   | Monaco Editor                                |
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Database Setup](#database-setup)
+- [AI Mentor System](#ai-mentor-system)
+- [Development](#development)
+- [Project Structure](#project-structure)
+- [Vision](#vision)
 
 ---
 
-## ✨ Highlights
+## 🌟 Overview
 
-- ✅ **Reusable Docker containers** for efficient code execution.
-- 🎯 **Role-based access control** with comprehensive admin dashboard.
-- 📄 **Full CRUD operations** for blogs, problems, users, courses, and submissions.
-- 🧪 **Automated judging** with output matching against PostgreSQL test cases.
-- 🧠 **AI-Powered Complexity Analysis** using Google Gemini for Big O notation.
-- 🎓 **Complete Course Management** with enrollment and progress tracking.
-- � **Advanced Analytics** with category points, leaderboards, and visual charts.
-- 🔄 **Intelligent Caching** for complexity analysis and code persistence.
-- 🎨 **Modern UI/UX** with Tailwind CSS, animations, and responsive design.
-- 🏆 **Category-wise Progress** tracking with detailed statistics and achievements.
+**NeoCode** is not just another code judge - it's a comprehensive **AI-powered learning platform** that tracks your skills across all courses, provides personalized mentorship, validates your progress, and guides you toward your career goals.
 
----
+### What Makes NeoCode Different?
 
-## 🆕 Advanced Features
-
-### 🧠 Complexity Analysis
-- **Real-time AI Analysis**: Powered by Google Gemini AI for instant Big O notation detection
-- **Multi-language Support**: Analyze Java, Python, C++, JavaScript, and C code
-- **Smart Caching**: LRU cache system stores previous analyses for faster results
-- **Visual Integration**: Seamless integration with code editor for instant feedback
-
-### 📊 Category Points & Analytics
-- **Category-wise Tracking**: Monitor progress across different algorithm categories
-- **Visual Dashboard**: Interactive charts showing progress distribution and statistics  
-- **Leaderboard System**: Compete with other users in category-specific rankings
-- **Achievement System**: Track completion percentages and earned points
-- **Detailed Analytics**: Difficulty breakdown and problem-solving patterns
-
-### 🎓 Course Management
-- **Structured Learning**: Organized courses with curated problem sets
-- **Progress Tracking**: Monitor student advancement through course materials
-- **Enrollment System**: Easy course registration and management
-- **Course Analytics**: Comprehensive statistics for instructors and students
-- **Points Integration**: Earn category points through course completion
-
-### 🎨 Enhanced User Experience  
-- **Modern UI**: Clean, responsive design with Tailwind CSS
-- **Rich Animations**: Smooth transitions using Framer Motion
-- **Interactive Elements**: Particle effects and dynamic visual feedback
-- **Code Persistence**: Automatic saving of code progress per problem
-- **Multi-theme Support**: Customizable editor themes and preferences
+- **🧠 AI Mentor System** - Personalized coaching with memory of your entire learning journey
+- **📊 Skill-Based Learning** - Track skills across ALL courses (DSA from Course A + B = unified skill profile)
+- **✅ Validation Engine** - No fake progress - prove you learned before leveling up
+- **🎯 Career Roadmaps** - Set goals like "VR Engineer" and get AI-generated learning paths
+- **🐳 Docker Execution** - Secure, isolated code execution in C++, Python, Java
+- **📈 Cross-Course Analytics** - See all your progress in one unified dashboard
 
 ---
 
-## 📁 Folder Structure
-```bash
-NeoCode/
-├── README.md                      # Project documentation
-├── bz-client/                    # Frontend (React + Vite)
-│   ├── public/                   # Public assets
-│   │   ├── logo.png
-│   │   ├── logo.svg
-│   │   └── vite.svg
-│   ├── src/
-│   │   ├── assets/               # Static images
-│   │   │   ├── stars.png
-│   │   │   ├── stars-black.png
-│   │   │   └── zoro-s.png
-│   │   ├── components/
-│   │   │   ├── Common/           # Shared UI components
-│   │   │   │   ├── Button.jsx
-│   │   │   │   ├── ChartComponent.jsx
-│   │   │   │   └── constants.js
-│   │   │   └── pages/            # Route-level components
-│   │   │       ├── Admin/
-│   │   │       │   ├── AdminDashboard.jsx
-│   │   │       │   ├── AdminUsers.jsx
-│   │   │       │   ├── CreateBlog.jsx
-│   │   │       │   └── CreateProblem.jsx
-│   │   │       ├── Auth/
-│   │   │       │   ├── AdminRoute.jsx
-│   │   │       │   ├── Login.jsx
-│   │   │       │   └── Register.jsx
-│   │   │       ├── Blogs/
-│   │   │       │   ├── BlogCard.jsx
-│   │   │       │   ├── BlogPage.jsx
-│   │   │       │   └── Blogs.jsx
-│   │   │       ├── MyCode/
-│   │   │       │   └── MyCodePage.jsx
-│   │   │       ├── problems/
-│   │   │       │   ├── CodeEditor.jsx
-│   │   │       │   ├── ProblemCard.jsx
-│   │   │       │   ├── ProblemPage.jsx
-│   │   │       │   └── Problems.jsx
-│   │   │       ├── Submissions/
-│   │   │       │   ├── SubmissionsPage.jsx
-│   │   │       │   └── SubmissionViewPage.jsx
-│   │   │       ├── Footer.jsx
-│   │   │       ├── Header.jsx
-│   │   │       ├── Home.jsx
-│   │   │       ├── NotFound.jsx
-│   │   │       ├── Profile.jsx
-│   │   │       └── SavedSnippets.jsx
-│   │   ├── context/
-│   │   │   └── UserContext.jsx
-│   │   ├── App.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   ├── dist/                     # Build output
-│   │   ├── index.html
-│   │   ├── logo.png
-│   │   ├── logo.svg
-│   │   ├── vite.svg
-│   │   └── assets/
-│   │       ├── index-*.js
-│   │       ├── index-*.css
-│   │       └── zoro-s-*.png
-│   ├── .env
-│   ├── .gitignore
-│   ├── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── vite.config.js
-│   └── .eslintrc.cjs
-├── bz-server/                    # Backend (Express.js)
-│   ├── src/
-│   │   ├── constants/
-│   │   ├── controllers/
-│   │   │   ├── compilers/
-│   │   │   │   ├── executeCppCode.controller.js
-│   │   │   │   ├── executeJavaCode.controller.js
-│   │   │   │   └── executePythonCode.controller.js
-│   │   │   ├── blogs.admin.controller.js
-│   │   │   ├── blogs.users.controller.js
-│   │   │   ├── problem.controller.js
-│   │   │   ├── problem.execute.controller.js
-│   │   │   ├── problems.admin.controller.js
-│   │   │   ├── profile.user.controller.js
-│   │   │   ├── snippets.controller.js
-│   │   │   └── users.admin.controller.js
-│   │   ├── database/
-│   │   │   ├── connect.db.js
-│   │   │   └── schema.md
-│   │   ├── middlewares/
-│   │   │   └── authentication.js
-│   │   ├── routes/
-│   │   │   ├── blogs.admin.routes.js
-│   │   │   ├── blogs.user.routes.js
-│   │   │   ├── problem.execute.routes.js
-│   │   │   ├── problems.admin.routes.js
-│   │   │   ├── profile.user.routes.js
-│   │   │   ├── snippets.routes.js
-│   │   │   └── users.admin.routes.js
-│   │   ├── workers/
-│   │   │   ├── cpp-worker/
-│   │   │   │   ├── Dockerfile
-│   │   │   │   ├── input.txt
-│   │   │   │   └── NeoCode.cpp
-│   │   │   ├── java-worker/
-│   │   │   │   ├── Dockerfile
-│   │   │   │   ├── input.txt
-│   │   │   │   ├── NeoCode.java
-│   │   │   │   └── exec_sample_*.*
-│   │   │   └── python-worker/
-│   │   │       ├── Dockerfile
-│   │   │       ├── input.txt
-│   │   │       └── NeoCode.py
-│   │   └── index.js
-│   ├── .env
-│   ├── .gitignore
-│   ├── package.json
-│   └── package-lock.json
+## 🎯 Key Features
+
+### 🔐 **Authentication & Authorization**
+
+- JWT-based authentication with HTTP-only cookies
+- Role-based access control (Admin/User)
+- Secure password hashing with bcrypt
+
+### 💻 **Code Execution Platform**
+
+- **Multi-language support**: C++, Python, Java
+- **Monaco Editor** - VS Code-like coding experience
+- **Docker containers** - Secure, isolated execution
+- **Container reuse** - Optimized performance
+- **Real-time test validation** against hidden test cases
+- **Save snippets** for future reference
+
+### 🧠 **AI Mentor System** (NEW!)
+
+- **Personalized AI Mentor** with full context of your learning
+- **Skill Tracking** across all courses and problems
+- **Goal Management** with career-focused roadmaps
+- **Validation Engine** requiring proof before skill level-ups
+- **Daily Learning Plans** generated by AI
+- **Multi-modal Validation** (Quiz + Code + Explain + Project)
+- **Skill Dependency Graphs** for structured learning
+
+### 🎓 **Course Management**
+
+- Complete course platform with problem assignments
+- Student enrollment and progress tracking
+- Course-specific submissions and analytics
+- **Skill-based progression** - Skills learned carry across courses
+- Points-based completion system
+
+### 📊 **Advanced Analytics**
+
+- **Unified Dashboard** - See progress across ALL courses
+- Category points system with visual charts
+- Leaderboard system for healthy competition
+- Difficulty-based statistics
+- Real-time progress tracking
+- Weak/strong topic identification
+- Learning pattern analysis
+
+### 🤖 **AI-Powered Features**
+
+- **Multi-Provider LLM Integration** (Ollama local + OpenAI + Gemini)
+- **AI Code Review** with actionable feedback
+- **Complexity Analysis** (Big O notation detection)
+- **Smart Caching** for AI responses
+- **Interview Simulator** with adaptive questions
+- **AI Support Chat** (restricted to logged-in users)
+- **Mistake Pattern Detection**
+
+### 📝 **Content Management**
+
+- Rich blog system with Quill editor
+- Problem CRUD with category organization
+- Submission tracking and analytics
+- User management dashboard
+
+---
+
+## 🧾 Tech Stack
+
+### Frontend
+
+- **React 18** with Vite
+- **Tailwind CSS** for styling
+- **Framer Motion** for animations
+- **Monaco Editor** for code editing
+- **Chart.js** for analytics
+- **Axios** for API calls
+- **React Router** for navigation
+
+### Backend
+
+- **Node.js** with Express.js
+- **PostgreSQL** database
+- **JWT** authentication
+- **Docker** for code execution
+- **Multer** for file uploads
+
+### AI/LLM Integration
+
+- **Local LLM** (Ollama) for privacy
+- **OpenAI API** for advanced features
+- **Google Gemini** for complexity analysis
+- Pluggable architecture for multiple providers
+
+### DevOps
+
+- **Docker** containers for isolated execution
+- **Container reuse** for performance
+- **PostgreSQL** with migrations
+- Environment-based configuration
+
+---
+
+## 🏗️ Architecture
+
+### System Overview
 
 ```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (React)                         │
+│  Landing → Dashboard → Problems → Courses → AI Chat         │
+└────────────────────┬────────────────────────────────────────┘
+                     │ HTTP/REST API
+┌────────────────────▼────────────────────────────────────────┐
+│                  BACKEND (Node.js + Express)                │
+│                                                              │
+│  ┌──────────────┐  ┌────────────────┐  ┌────────────────┐ │
+│  │   Routes     │→ │  Controllers   │→ │   Services     │ │
+│  └──────────────┘  └────────────────┘  └────────────────┘ │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │         AI MENTOR SYSTEM (Learning Core)            │  │
+│  │  ┌───────────────┐  ┌────────────────────────┐     │  │
+│  │  │ Skill Manager │  │ Goal Tracker           │     │  │
+│  │  └───────────────┘  └────────────────────────┘     │  │
+│  │  ┌───────────────┐  ┌────────────────────────┐     │  │
+│  │  │ Validation    │  │ Roadmap Engine         │     │  │
+│  │  │ Engine        │  │ (AI-powered)           │     │  │
+│  │  └───────────────┘  └────────────────────────┘     │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │         LLM GATEWAY (Multi-Provider)                │  │
+│  │  Ollama (Local) | OpenAI | Gemini                   │  │
+│  └─────────────────────────────────────────────────────┘  │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│                  DATABASE (PostgreSQL)                       │
+│                                                              │
+│  Legacy: users, problems, courses, submissions               │
+│  Learning OS: learning_profiles, training_plans              │
+│  AI Mentor: user_skills, user_goals, validations (+9 more)  │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│           DOCKER CONTAINERS (Code Execution)                 │
+│   cpp-container | python-container | java-container          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### AI Mentor Architecture (6-Layer)
+
+```
+1. UI Layer         → User interface for dashboard, chat, goals
+2. AI Mentor        → Strict coach persona with full context
+3. Skill Engine     → Tracks user skills across all courses
+4. Validation Layer → Prevents fake progress (quiz+code+project)
+5. Memory Layer     → Stores learning history, patterns, goals
+6. Course Integration → Maps course problems → skill updates
+```
+
+### Data Flow: Problem Solved → Skill Updated
+
+```
+User solves problem in Course A
+  ↓
+problem.execute.controller.js (verdict = ACCEPTED)
+  ↓
+courseIntegration.onProblemSolved()
+  ↓
+skillManagement.updateUserSkill()
+  ↓
+user_skills table updated (confidence +5)
+  ↓
+Dashboard shows unified skill progress across ALL courses
+```
+
+---
 
 ## 🚀 Getting Started
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Rakesh-116/NeoCode.git
-cd NeoCode
-```
-🚀 Running the App
-🐳 Prerequisite: Start Docker Daemon
-Ensure Docker is running on your machine.
-
-1. Backend
-```bash
-cd bz-server
-npm install
-npm run dev
-```
-3. Frontend
-```bash
-cd ../bz-client
-npm install
-npm run dev
-```
-
-### 2. Setup Environment Variables
-Create a .env file inside the /bz-server folder and add the following variables:
-
-🛠️ Sample .env for /bz-server
-```bash
-PORT=8080
-
-# 🔐 PostgreSQL connection
-DB_USER_NAME=your_database_user
-DB_PASS=your_database_password
-DB_HOST=your_database_host_url
-DB_PORT=5432
-DB_NAME=your_database_name
-SSL_MODE=require
-
-# 🔑 JWT Auth Secret
-JWT_SECRET_KEY=your_super_secret_key
-
-# 🤖 AI Integration
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-✅ Ready to Use
-Visit the app in your browser at:
-http://localhost:5173 (or your Vite dev port)
-
-Backend runs on:
-http://localhost:8080
-
-### 3. Docker Setup for Compilation Workers
-
-After cloning the repository, follow these steps to set up Docker containers for the compilers.
-
 ### Prerequisites
 
-Ensure that you have [Docker](https://docs.docker.com/get-docker/) installed on your system. Docker is required to build images and run containers for compilation tasks. If you don't have Docker installed, please refer to the provided link for installation instructions for your platform.
+- **Node.js** (v18+)
+- **PostgreSQL** (v14+)
+- **Docker** (for code execution)
+- **Ollama** (optional, for local LLM)
 
-### Build Docker Images
+### Installation
 
-Once Docker is installed, navigate to the root directory of the cloned repository.
+1. **Clone the repository**
 
-1. **Navigate to the Dockerfile directory**:
-   The Dockerfiles for each language (C++, Java, and Python) are located in the `bz-server/src/workers` folder. 
-   
-2. **Build Docker images**:
-   You will need to create Docker images for each language using the Dockerfiles. Run the following commands to build the Docker images:
+    ```bash
+    git clone https://github.com/Rakesh-116/NeoCode-v2.git
+    cd NeoCode-v2
+    ```
 
-   - **For C++**:
-     ```bash
-     docker build -t cpp-comp bz-server/src/workers/cpp-worker
-     ```
+2. **Install dependencies**
 
-   - **For Java**:
-     ```bash
-     docker build -t java-comp bz-server/src/workers/java-worker
-     ```
+    ```bash
+    # Backend
+    cd bz-server
+    npm install
 
-   - **For Python**:
-     ```bash
-     docker build -t python-comp bz-server/src/workers/python-worker
-     ```
+    # Frontend
+    cd ../bz-client
+    npm install
+    ```
 
-   This will create three Docker images:
-   - `cpp-comp` (for C++ compilation)
-   - `java-comp` (for Java compilation)
-   - `python-comp` (for Python compilation)
+3. **Environment Setup**
 
-### Run Docker Containers
+    Create `.env` in `bz-server/`:
 
-After successfully building the Docker images, you can now create containers from these images. The container names should match the image names as per your instructions.
+    ```env
+    # Database
+    POSTGRES_USER=postgres
+    POSTGRES_PASSWORD=your_password
+    POSTGRES_DB=Neocode-v2
+    POSTGRES_HOST=localhost
+    POSTGRES_PORT=5432
 
-1. **Run containers**:
-   To start a container for each language, execute the following commands:
+    # JWT
+    JWT_SECRET=your_super_secret_key_here
 
-   - **For C++**:
-     ```bash
-     docker run -d --name cpp-container cpp-comp
-     ```
+    # Server
+    PORT=5000
+    CLIENT_URL=http://localhost:5173
 
-   - **For Java**:
-     ```bash
-     docker run -d --name java-container java-comp
-     ```
+    # AI Configuration
+    LLM_PROVIDER=ollama  # or 'openai', 'gemini'
+    OLLAMA_BASE_URL=http://localhost:11434
+    OLLAMA_MODEL_NAME=llama3
+    OPENAI_API_KEY=sk-...  # if using OpenAI
+    GEMINI_API_KEY=...     # if using Gemini
 
-   - **For Python**:
-     ```bash
-     docker run -d --name python-container python-comp
-     ```
+    # AI Mentor Settings
+    SKILL_CONFIDENCE_INCREMENT=5
+    SKILL_LEVEL_UP_THRESHOLD=80
+    VALIDATION_REQUIRED=true
+    ```
 
-   This will create and start three containers with the following names:
-   - `cpp-container` (for C++ compilation)
-   - `java-container` (for Java compilation)
-   - `python-container` (for Python compilation)
+    Create `.env` in `bz-client/`:
 
-### Verify Containers
+    ```env
+    VITE_BACKEND_URL=http://localhost:5000
+    ```
 
-To verify that the containers are running correctly, use the following command:
+4. **Docker Setup for Code Execution**
 
-```bash
-docker ps
-```
-This will display a list of running containers. You should see the containers cpp-container, java-container, and python-container listed.
+    Ensure [Docker](https://docs.docker.com/get-docker/) is installed and running on your system.
 
-Stopping and Removing Containers
-To stop and remove any container, use the following commands:
+    **Build Docker Images:**
 
-Stop containers:
+    ```bash
+    cd bz-server/src/workers
 
-```bash
-docker stop cpp-container
-docker stop java-container
-docker stop python-container
-```
-Remove containers:
+    # Build containers for each language
+    docker build -t cpp-comp ./cpp-worker
+    docker build -t java-comp ./java-worker
+    docker build -t python-comp ./python-worker
+    ```
 
-```bash
-docker rm cpp-container
-docker rm java-container
-docker rm python-container
-```
-### Conclusion
-You have now successfully set up Docker containers for C++, Java, and Python compilation. You can interact with these containers via your application's API to compile code for each language.
+    **Run Docker Containers:**
 
-If you encounter any issues with Docker setup or running containers, refer to the Docker Documentation for more information and troubleshooting steps.
+    ```bash
+    # Start containers (they will run in background)
+    docker run -d --name cpp-container cpp-comp
+    docker run -d --name java-container java-comp
+    docker run -d --name python-container python-comp
+    ```
 
-### Explanation:
-- This section assumes the user has already cloned the repo and focuses on building Docker images and running containers.
-- The user will be guided to build images for C++, Java, and Python using their respective Dockerfiles.
-- Each image corresponds to a container, and the instructions clearly specify the naming conventions (`cpp-container`, `java-container`, and `python-container`).
-- It provides basic Docker commands to verify and manage containers, including stopping and removing them.
+    **Verify Containers:**
 
-## Author
+    ```bash
+    # Check if containers are running
+    docker ps
+    ```
 
-This project is made with ❤️ by [Rakesh Penugonda].  
-Feel free to explore and contribute to the repository!
+    You should see `cpp-container`, `java-container`, and `python-container` listed.
+
+    **Managing Containers:**
+
+    ```bash
+    # Stop containers
+    docker stop cpp-container java-container python-container
+
+    # Remove containers
+    docker rm cpp-container java-container python-container
+
+    # Restart containers
+    docker start cpp-container java-container python-container
+    ```
+
+5. **Run the application**
+
+    ```bash
+    # Terminal 1 - Backend
+    cd bz-server
+    npm run dev
+
+    # Terminal 2 - Frontend
+    cd bz-client
+    npm run dev
+    ```
+
+6. **Access the application**
+    - Frontend: http://localhost:5173
+    - Backend: http://localhost:5000
 
 ---
 
-## Feedback & Doubts
+## 🗄️ Database Setup
 
-If you have any feedback, suggestions, or doubts about this project, feel free to reach out.  
-We value your input and aim to improve continuously.
+### Create Database
 
-- For feedback or suggestions, you can email us directly at: **rakeshwgpcgr@gmail.com**
+```bash
+psql -U postgres
+CREATE DATABASE "Neocode-v2";
+\q
+```
 
-We appreciate your contributions and involvement!
+### Run Migrations
 
+The AI Mentor System requires running database migrations in order:
 
+```bash
+cd bz-server
+
+# Migration 1: Core AI Mentor tables (12 tables, 3 triggers, 2 views)
+psql -U postgres -d Neocode-v2 -f database/migrations/002_ai_mentor_system.sql
+
+# Migration 2: Skill catalog (15+ skills)
+psql -U postgres -d Neocode-v2 -f database/migrations/003_seed_course_skill_mappings.sql
+```
+
+### Map Your Courses to Skills
+
+After migrations, you need to connect your courses to skills:
+
+1. Find your course IDs:
+
+    ```sql
+    SELECT id, title FROM courses;
+    ```
+
+2. Map courses to skills:
+    ```sql
+    -- Example: DSA Course
+    INSERT INTO course_skills (course_id, skill_name, skill_weight, target_level, description)
+    VALUES
+      ('YOUR-COURSE-UUID', 'DSA', 10, 3, 'Core DSA proficiency'),
+      ('YOUR-COURSE-UUID', 'Arrays', 8, 2, 'Array problem solving'),
+      ('YOUR-COURSE-UUID', 'Trees', 9, 3, 'Tree algorithms');
+    ```
+
+See `bz-server/database/migrations/HELPER_map_courses_to_skills.sql` for detailed examples.
+
+### Database Schema
+
+**21 Total Tables:**
+
+- **13 Legacy**: users, problems, courses, submissions, blogs, etc.
+- **8 Learning OS**: learning_profiles, training_plans, evaluations, etc.
+- **12 AI Mentor**: user_skills, user_goals, validations, skill_catalog, roadmap_templates, etc.
+
+**Key Views:**
+
+- `skill_progress_across_courses` - Aggregates skill data from all courses
+- `problem_skill_mapping` - Maps problem categories to skills
+
+---
+
+## 🧠 AI Mentor System
+
+### Philosophy
+
+> **"Skills are universal. Courses are temporary paths. Your skill profile is your true progress."**
+
+The AI Mentor System tracks **SKILLS, not courses**. If you learn Arrays in Course A, that skill carries to Course B. Your dashboard shows unified skill levels across everything you've learned.
+
+### Core Features
+
+#### 1. **Skill-Based Learning**
+
+- Track 50+ skills (DSA, Arrays, Trees, VR, Unity, C#, etc.)
+- Skills aggregate across ALL courses
+- Level 0-5 progression with confidence tracking
+- Automatic updates when solving problems
+
+#### 2. **Career Goals & Roadmaps**
+
+- Set goals: "Become VR Engineer at Meta"
+- AI generates dependency-ordered roadmaps
+- Tracks required skills and progress
+- Recommends courses to fill skill gaps
+
+#### 3. **Validation Engine (No Fake Progress)**
+
+- Can't level up without proof
+- Multi-modal validation:
+    - **Quiz** - Answer MCQs about concepts
+    - **Code** - Write code from scratch
+    - **Explain** - Explain solution approach
+    - **Project** - Build real-world applications
+- Skill gates prevent advancement without validation
+
+#### 4. **AI Mentor Chat**
+
+- Strict coach persona (not casual chatbot)
+- Full context of your skills, goals, history
+- Blocks procrastination and excuses
+- Suggests next steps based on your trajectory
+
+#### 5. **Daily Learning Plans**
+
+- AI generates personalized daily tasks
+- Based on goals, weak topics, and schedule
+- Adaptive difficulty
+- Validation checkpoints
+
+### API Endpoints
+
+```
+# Skills
+GET  /api/mentor/skills              # Get user skill profile
+POST /api/mentor/skills/assessment   # Submit assessment
+GET  /api/mentor/skills/gaps         # Identify skill gaps
+
+# Goals
+GET  /api/mentor/goals               # Get career goals
+POST /api/mentor/goals               # Create goal
+GET  /api/mentor/goals/:id           # Goal breakdown
+
+# Validations
+POST /api/mentor/validations         # Submit validation
+GET  /api/mentor/validations/requirements/:skill/:level
+
+# Roadmap
+POST /api/mentor/roadmap/generate    # Generate AI roadmap
+GET  /api/mentor/roadmap/active      # Get active roadmap
+GET  /api/mentor/roadmap/tasks/today # Today's tasks
+
+# Dashboard
+GET  /api/mentor/dashboard           # Unified cross-course dashboard
+
+# AI Chat
+POST /api/mentor/chat                # Chat with mentor
+GET  /api/mentor/chat/history        # Chat history
+```
+
+### Dashboard Response
+
+```json
+{
+  "overview": {
+    "courses_enrolled": 3,
+    "problems_solved": 47,
+    "skills_tracked": 12,
+    "avg_confidence": 68,
+    "validation_rate": 75
+  },
+  "skills": [
+    {
+      "skill_name": "Dynamic Programming",
+      "level": 3,
+      "confidence": 85,
+      "learned_from_courses": ["dsa-striver", "algorithms-advanced"],
+      "course_count": 2
+    }
+  ],
+  "goals": [...],
+  "todaysPlan": {...},
+  "recommendations": {...}
+}
+```
+
+---
+
+## 💻 Development
+
+### Project Structure
+
+```
+NeoCode-v2/
+├── bz-client/                 # Frontend React app
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── pages/         # Page components
+│   │   │   │   ├── Home.jsx   # Landing page (NO gradients!)
+│   │   │   │   ├── Footer.jsx # New footer design
+│   │   │   │   └── LearningProfile.jsx
+│   │   │   └── Common/        # Reusable components
+│   │   ├── context/           # React context
+│   │   └── utils/             # Utilities
+│   └── package.json
+│
+├── bz-server/                 # Backend Node.js app
+│   ├── src/
+│   │   ├── controllers/       # Route controllers
+│   │   │   ├── mentor.controller.js        # AI Mentor endpoints
+│   │   │   ├── problem.execute.controller.js
+│   │   │   └── courses.*.controller.js
+│   │   ├── routes/            # API routes
+│   │   ├── services/          # Business logic
+│   │   │   └── courseIntegration.service.js  # Course→Skill sync
+│   │   ├── learning-core/     # AI Mentor System
+│   │   │   ├── services/
+│   │   │   │   ├── skillManagement.service.js
+│   │   │   │   ├── goalTracking.service.js
+│   │   │   │   ├── validationEngine.service.js
+│   │   │   │   ├── enhancedRoadmap.service.js
+│   │   │   │   └── learningDashboard.service.js
+│   │   │   ├── routes/
+│   │   │   └── controllers/
+│   │   ├── ai/                # LLM integration
+│   │   │   ├── llmGateway.service.js  # Multi-provider
+│   │   │   └── prompts/
+│   │   │       └── mentor.prompt.js   # NeoMentor persona
+│   │   ├── database/
+│   │   │   ├── connect.db.js
+│   │   │   └── migrations/
+│   │   │       ├── 002_ai_mentor_system.sql
+│   │   │       └── 003_seed_course_skill_mappings.sql
+│   │   └── workers/           # Docker execution
+│   │       ├── cpp-worker/
+│   │       ├── python-worker/
+│   │       └── java-worker/
+│   └── package.json
+│
+├── NEOCODE_VISION.md          # Complete vision document
+└── README.md                  # This file
+```
+
+### Development Workflow
+
+1. **Frontend Development**
+
+    ```bash
+    cd bz-client
+    npm run dev
+    ```
+
+    - Changes auto-reload via Vite HMR
+    - Tailwind processes styles on-the-fly
+
+2. **Backend Development**
+
+    ```bash
+    cd bz-server
+    npm run dev
+    ```
+
+    - Nodemon auto-restarts on changes
+    - Watch logs for errors
+
+3. **Database Changes**
+    - Create new migration file
+    - Run with `psql -U postgres -d Neocode-v2 -f migration.sql`
+    - Test thoroughly
+
+4. **Adding AI Features**
+    - Update `ai/prompts/` for new prompts
+    - Modify `llmGateway.service.js` for provider changes
+    - Use environment variables for API keys
+
+### Coding Standards
+
+- **No gradients in UI** - Use solid colors (bg-white/5, border-white/10)
+- **Color palette**: Black backgrounds, white text, white/60 for secondary
+- **ESLint** for JavaScript linting
+- **Prettier** for code formatting (if configured)
+- **Async/await** for all database operations
+- **Error handling** in all controllers
+
+### Testing
+
+```bash
+# Test problem submission
+curl -X POST http://localhost:5000/api/problems/submit \
+  -H "Authorization: Bearer YOUR_JWT" \
+  -d '{"problemId":"...", "code":"...", "language":"python"}'
+
+# Test dashboard
+curl http://localhost:5000/api/mentor/dashboard \
+  -H "Authorization: Bearer YOUR_JWT"
+
+# Test skill update (solve any problem)
+# Should see skill confidence increase
+```
+
+---
+
+## 🎯 Roadmap
+
+### Phase 1: Core Platform ✅
+
+- [x] Code execution (C++, Python, Java)
+- [x] Problem management
+- [x] Course system
+- [x] User authentication
+
+### Phase 2: Learning OS ✅
+
+- [x] Learning profiles
+- [x] Training plans
+- [x] Mistake tracking
+- [x] Recommendations
+
+### Phase 3: AI Mentor System ✅
+
+- [x] Skill tracking across courses
+- [x] Goal management
+- [x] Validation engine
+- [x] AI roadmap generation
+- [x] Daily learning plans
+- [x] Unified dashboard
+
+### Phase 4: Advanced Features (In Progress)
+
+- [ ] Skill assessments (auto-generated quizzes)
+- [ ] Project-based validations
+- [ ] Peer code review system
+- [ ] Career roadmap templates library
+- [ ] Skill dependency graph visualization
+- [ ] Learning analytics (time-to-mastery, retention)
+
+### Phase 5: Scale & Polish
+
+- [ ] Mobile app
+- [ ] Real-time collaboration
+- [ ] Video explanations
+- [ ] Community features
+- [ ] Gamification
+- [ ] Performance optimization
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 👨‍💻 Author
+
+**Rakesh Penugonda**
+
+- GitHub: [@Rakesh-116](https://github.com/Rakesh-116)
+- LinkedIn: [rakesh-penugonda](https://www.linkedin.com/in/rakesh-penugonda/)
+- X: [@rakeshcrafts\_\_](https://x.com/rakeshcrafts__)
+
+---
+
+## 📚 Documentation
+
+For complete vision and philosophy, see [NEOCODE_VISION.md](NEOCODE_VISION.md)
+
+---
+
+## 🙏 Acknowledgments
+
+- Monaco Editor for the amazing code editor
+- Tailwind CSS for the utility-first styling
+- Docker for secure code execution
+- PostgreSQL for robust data storage
+- The open-source community for inspiration
+
+---
+
+**Made with ❤️ and 💻 by Rakesh Penugonda**
+
+_Transform your coding journey with AI-powered mentorship!_ 🚀

@@ -3,6 +3,7 @@ import executeJavaCode from "./compilers/executeJavaCode.controller.js";
 import executePythonCode from "./compilers/executePythonCode.controller.js";
 import executeCppCode from "./compilers/executeCppCode.controller.js";
 import EvaluationService from "../learning-core/services/evaluation.service.js";
+import CourseIntegrationService from "../services/courseIntegration.service.js";
 
 import generateUuid from "../constants/generateUuid.js";
 
@@ -312,9 +313,9 @@ const submitProblemController = async (req, res) => {
                         // Parse execution time: totalExecutionTime is numeric milliseconds
                         // Convert to seconds (integer) for learning system
                         let timeSpentSeconds = null;
-                        if (typeof totalExecutionTime === 'number') {
+                        if (typeof totalExecutionTime === "number") {
                             timeSpentSeconds = Math.round(totalExecutionTime / 1000);
-                        } else if (typeof totalExecutionTime === 'string') {
+                        } else if (typeof totalExecutionTime === "string") {
                             // Parse string like "646.1533 ms" or "0646.1533 ms682.9742 ms"
                             const match = totalExecutionTime.match(/(\d+\.?\d*)\s*ms/);
                             if (match) {
@@ -339,6 +340,19 @@ const submitProblemController = async (req, res) => {
                             },
                         });
                         console.log("✅ Learning core updated successfully");
+
+                        // ============================================================================
+                        // AI MENTOR SYSTEM: Update user skills when problem is solved
+                        // ============================================================================
+                        if (verdict === "ACCEPTED") {
+                            try {
+                                const courseIntegrationService = new CourseIntegrationService();
+                                await courseIntegrationService.onProblemSolved(userId, problemId, courseId, verdict);
+                                console.log("✅ AI Mentor System: Skill updated for problem solved");
+                            } catch (mentorError) {
+                                console.error("⚠️ AI Mentor skill update failed (non-critical):", mentorError.message);
+                            }
+                        }
                     } catch (learningError) {
                         // Don't fail submission if learning core has issues
                         console.error("⚠️ Learning core update failed (non-critical):", learningError.message);
