@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
-import { FaWandMagicSparkles, FaCode, FaRocket, FaBrain, FaChartLine } from "react-icons/fa6";
+import {
+    FaWandMagicSparkles,
+    FaCode,
+    FaRocket,
+    FaBrain,
+    FaChartLine,
+    FaMicrophone,
+    FaRobot,
+    FaCircleCheck,
+} from "react-icons/fa6";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import axios from "axios";
 
@@ -12,8 +21,11 @@ import Footer from "./Footer";
 
 const Home = () => {
     const navigate = useNavigate();
-    const { userData, updateUserData } = useUser();
+    const location = useLocation();
+    const { userData, updateUserData, isLoggedIn } = useUser();
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const searchParams = new URLSearchParams(location.search);
+    const nextPath = searchParams.get("next");
 
     useEffect(() => {
         const jwtToken = Cookies.get("neo_code_jwt_token");
@@ -108,18 +120,37 @@ const Home = () => {
                             transition={{ duration: 0.5, delay: 0.6 }}
                             className="flex gap-4 justify-center mt-10 flex-wrap"
                         >
-                            <button
-                                className="px-8 py-3 bg-white text-black rounded-md font-medium hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-white/20"
-                                onClick={() => navigate("/problemset")}
-                            >
-                                Start Practicing
-                            </button>
-                            <button
-                                className="px-8 py-3 border border-white/25 text-white rounded-md font-medium hover:bg-white/10 hover:border-white/40 transition-all duration-300"
-                                onClick={() => navigate("/compiler")}
-                            >
-                                Try Compiler
-                            </button>
+                            {isLoggedIn ? (
+                                <>
+                                    <button
+                                        className="px-8 py-3 bg-white text-black rounded-md font-medium hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-white/20"
+                                        onClick={() => navigate(nextPath || "/problemset")}
+                                    >
+                                        Continue Learning
+                                    </button>
+                                    <button
+                                        className="px-8 py-3 border border-white/25 text-white rounded-md font-medium hover:bg-white/10 hover:border-white/40 transition-all duration-300"
+                                        onClick={() => navigate("/compiler")}
+                                    >
+                                        Try Compiler
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        className="px-8 py-3 bg-white text-black rounded-md font-medium hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-white/20"
+                                        onClick={() => navigate("/login" + (nextPath ? `?next=${nextPath}` : ""))}
+                                    >
+                                        Start Learning Free
+                                    </button>
+                                    <button
+                                        className="px-8 py-3 border border-white/25 text-white rounded-md font-medium hover:bg-white/10 hover:border-white/40 transition-all duration-300"
+                                        onClick={() => navigate("/compiler")}
+                                    >
+                                        Try Compiler
+                                    </button>
+                                </>
+                            )}
                         </motion.div>
                     </div>
                 </div>
@@ -206,6 +237,60 @@ const Home = () => {
                             </p>
                         </motion.div>
                     </div>
+
+                    {/* Additional Features Row */}
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.5 }}
+                            className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                        >
+                            <div className="bg-white/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                                <FaMicrophone className="text-white text-xl" />
+                            </div>
+                            <h3 className="text-white font-semibold text-lg mb-3">Voice Interviews</h3>
+                            <p className="text-white/60 text-sm">
+                                Practice technical interviews with AI voice interaction. Real-time speech recognition
+                                and instant feedback.
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.6 }}
+                            className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                        >
+                            <div className="bg-white/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                                <FaCircleCheck className="text-white text-xl" />
+                            </div>
+                            <h3 className="text-white font-semibold text-lg mb-3">Validated Learning</h3>
+                            <p className="text-white/60 text-sm">
+                                Multi-modal validation ensures real progress. No fake completion - earn your skills
+                                through proven mastery.
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.7 }}
+                            className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                        >
+                            <div className="bg-white/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                                <FaRobot className="text-white text-xl" />
+                            </div>
+                            <h3 className="text-white font-semibold text-lg mb-3">Mistake Tracking</h3>
+                            <p className="text-white/60 text-sm">
+                                AI identifies your coding patterns and common mistakes. Get personalized feedback to
+                                improve faster.
+                            </p>
+                        </motion.div>
+                    </div>
                 </div>
             </div>
 
@@ -256,40 +341,98 @@ const Home = () => {
                 </div>
             </div>
 
-            {/* CTA Section */}
+            {/* Dashboard & Interview Section */}
             <div className="bg-black border-t border-white/10 py-20">
-                <div className="container mx-auto px-6 max-w-4xl text-center">
-                    <motion.h2
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        className="text-4xl font-bold text-white mb-6"
-                    >
-                        Ready to Level Up Your Skills?
-                    </motion.h2>
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.2 }}
-                        className="text-white/70 text-lg mb-8 max-w-2xl mx-auto"
-                    >
-                        Join NeoCode today and experience AI-powered learning with personalized mentorship, validated
-                        progress, and career roadmaps.
-                    </motion.p>
+                <div className="container mx-auto px-6 max-w-6xl">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
-                        transition={{ delay: 0.4 }}
+                        className="text-center mb-12"
                     >
-                        <button
-                            className="px-10 py-4 bg-white text-black rounded-md font-medium hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-white/20 text-lg"
-                            onClick={() => navigate("/login")}
-                        >
-                            Get Started Free
-                        </button>
+                        <h2 className="text-4xl font-bold text-white mb-4">Experience Next-Gen Learning</h2>
+                        <p className="text-white/70 text-lg max-w-2xl mx-auto">
+                            Your personalized dashboard and AI-powered interview practice await
+                        </p>
                     </motion.div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* Learning Dashboard Card */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="bg-white/5 border border-blue-500/30 rounded-xl p-8 hover:border-blue-500/50 transition-all duration-300"
+                        >
+                            <div className="bg-blue-500/20 w-16 h-16 rounded-xl flex items-center justify-center mb-6">
+                                <FaChartLine className="text-blue-400 text-2xl" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-4">Learning Dashboard</h3>
+                            <p className="text-white/70 mb-6 leading-relaxed">
+                                Track your progress with real-time analytics, skill validation scores, and personalized
+                                learning paths. Monitor mistakes, view completion rates, and get AI recommendations.
+                            </p>
+                            <ul className="space-y-3 mb-8">
+                                <li className="flex items-start gap-3 text-white/80">
+                                    <FaCircleCheck className="text-green-400 mt-1 flex-shrink-0" />
+                                    <span>Real-time skill progress tracking</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-white/80">
+                                    <FaCircleCheck className="text-green-400 mt-1 flex-shrink-0" />
+                                    <span>Personalized problem recommendations</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-white/80">
+                                    <FaCircleCheck className="text-green-400 mt-1 flex-shrink-0" />
+                                    <span>Multi-modal validation scores</span>
+                                </li>
+                            </ul>
+                            <button
+                                className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-all duration-300"
+                                onClick={() => navigate(isLoggedIn ? nextPath || "/problemset" : "/login")}
+                            >
+                                {isLoggedIn ? "Open Dashboard" : "Get Started Free"}
+                            </button>
+                        </motion.div>
+
+                        {/* Voice Interview Card */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.4 }}
+                            className="bg-white/5 border border-purple-500/30 rounded-xl p-8 hover:border-purple-500/50 transition-all duration-300"
+                        >
+                            <div className="bg-purple-500/20 w-16 h-16 rounded-xl flex items-center justify-center mb-6">
+                                <FaMicrophone className="text-purple-400 text-2xl" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-4">Voice Interviews</h3>
+                            <p className="text-white/70 mb-6 leading-relaxed">
+                                Practice technical interviews with AI-powered voice interaction. Get real-time feedback,
+                                transcription, and detailed performance analysis for each session.
+                            </p>
+                            <ul className="space-y-3 mb-8">
+                                <li className="flex items-start gap-3 text-white/80">
+                                    <FaCircleCheck className="text-green-400 mt-1 flex-shrink-0" />
+                                    <span>AI voice interaction with speech recognition</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-white/80">
+                                    <FaCircleCheck className="text-green-400 mt-1 flex-shrink-0" />
+                                    <span>Real-time transcription and analysis</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-white/80">
+                                    <FaCircleCheck className="text-green-400 mt-1 flex-shrink-0" />
+                                    <span>Performance metrics and improvement tips</span>
+                                </li>
+                            </ul>
+                            <button
+                                className="w-full px-6 py-3 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition-all duration-300"
+                                onClick={() => navigate(isLoggedIn ? "/interviews" : "/login?next=/interviews")}
+                            >
+                                {isLoggedIn ? "Start Interview" : "Try Interview"}
+                            </button>
+                        </motion.div>
+                    </div>
                 </div>
             </div>
 

@@ -87,7 +87,7 @@ const LearningProfile = () => {
         return (
             <>
                 <Header />
-                <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="min-h-screen bg-black flex items-center justify-center pt-20">
                     <div className="text-xl text-white">Loading your learning profile...</div>
                 </div>
                 <Footer />
@@ -99,7 +99,7 @@ const LearningProfile = () => {
         return (
             <>
                 <Header />
-                <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="min-h-screen bg-black flex items-center justify-center pt-20">
                     <div className="text-center">
                         <h2 className="text-2xl font-bold text-red-500 mb-2">Error</h2>
                         <p className="text-white">{error}</p>
@@ -114,7 +114,7 @@ const LearningProfile = () => {
     return (
         <>
             <Header />
-            <div className="min-h-screen bg-black py-8">
+            <div className="min-h-screen bg-black py-8 pt-28">
                 <div className="container mx-auto px-4 max-w-6xl">
                     <h1 className="text-4xl font-bold mb-8 text-white">Your Learning Profile</h1>
 

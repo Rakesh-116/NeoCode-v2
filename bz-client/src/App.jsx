@@ -17,6 +17,10 @@ import SavedSnippets from "./components/pages/SavedSnippets";
 import Courses from "./components/pages/Courses/Courses";
 import CourseDetails from "./components/pages/Courses/CourseDetails";
 import LearningProfile from "./components/pages/LearningProfile";
+import Interviews from "./components/pages/Interview/Interviews";
+import InterviewSetup from "./components/pages/Interview/InterviewSetup";
+import InterviewRoom from "./components/pages/Interview/InterviewRoom";
+import InterviewSummary from "./components/pages/Interview/InterviewSummary";
 
 import AdminRoute from "./components/pages/Auth/AdminRoute";
 import AdminDashboard from "./components/pages/Admin/AdminDashboard";
@@ -52,6 +56,12 @@ function App() {
                     <Route path="/courses" element={<Courses />} />
                     <Route path="/courses/:id" element={<CourseDetails />} />
                     <Route path="/learning/profile" element={<LearningProfile />} />
+
+                    {/* AI Voice Interview Routes */}
+                    <Route path="/interviews" element={<Interviews />} />
+                    <Route path="/interview/setup" element={<InterviewSetup />} />
+                    <Route path="/interview/room/:sessionId" element={<InterviewRoom />} />
+                    <Route path="/interview/summary/:sessionId" element={<InterviewSummary />} />
 
                     {/* Admin-only Route */}
                     <Route element={<AdminRoute />}>

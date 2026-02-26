@@ -32,11 +32,13 @@
 ### What Makes NeoCode Different?
 
 - **🧠 AI Mentor System** - Personalized coaching with memory of your entire learning journey
+- **🎙️ Voice Interview System** - Practice interviews with AI using natural voice conversation
 - **📊 Skill-Based Learning** - Track skills across ALL courses (DSA from Course A + B = unified skill profile)
 - **✅ Validation Engine** - No fake progress - prove you learned before leveling up
 - **🎯 Career Roadmaps** - Set goals like "VR Engineer" and get AI-generated learning paths
 - **🐳 Docker Execution** - Secure, isolated code execution in C++, Python, Java
 - **📈 Cross-Course Analytics** - See all your progress in one unified dashboard
+- **🔌 Pluggable AI Providers** - Use local models (Ollama, Whisper, Piper) or cloud (OpenAI, Gemini)
 
 ---
 
@@ -67,7 +69,71 @@
 - **Multi-modal Validation** (Quiz + Code + Explain + Project)
 - **Skill Dependency Graphs** for structured learning
 
-### 🎓 **Course Management**
+### �️ **Voice Interview System** (NEW!)
+
+> **Automated Setup:** Run `setup-voice-interview.ps1` for one-click installation to `D:\models`
+
+- **🗣️ Voice Interaction** - Natural conversation with AI interviewer (speak & listen)
+- **📚 Topic-Based Interviews** - Practice Arrays, DP, System Design, etc.
+- **👔 Role-Based Interviews** - Upload JD + resume for tailored questions
+- **🔌 Pluggable Architecture** - Swap STT/TTS/LLM providers without code changes
+    - **Whisper** (OpenAI) for Speech-to-Text
+    - **Piper TTS** for natural voice synthesis
+    - **Ollama** (local) or OpenAI/Gemini for question generation
+- **📊 Smart Evaluation** - Real-time scoring with detailed feedback (0-100)
+- **🔗 Learning OS Integration** - Interview results feed into skill tracking
+- **📈 Analytics Dashboard** - Track performance across interview sessions
+- **💾 All models stored locally** in `D:\models` (~8-10 GB)
+
+**Quick Start:** See voice interview setup below.
+
+**Voice Interview Setup:**
+
+```powershell
+# Full automatic installation (Whisper + Ollama + Piper)
+powershell -ExecutionPolicy Bypass -File setup-voice-interview.ps1
+
+# Custom installation path
+powershell -ExecutionPolicy Bypass -File setup-voice-interview.ps1 -ModelsPath "C:\MyModels"
+
+# Selective installation
+powershell -ExecutionPolicy Bypass -File setup-voice-interview.ps1 -SkipWhisper
+```
+
+**What Gets Installed:**
+
+- Whisper (Speech-to-Text) - ~150MB
+- Ollama with llama2:13b - ~7.4GB
+- Piper TTS (Text-to-Speech) - ~50MB
+- **Total:** ~8-10 GB stored in `D:\models`
+
+**API Endpoints:**
+
+```bash
+# Check system health
+curl http://localhost:5000/api/interview/health
+
+# Start interview
+POST /api/interview/start
+# Body: { session_mode, topic, difficulty, target_questions }
+
+# Get next question (with audio)
+POST /api/interview/:sessionId/question
+
+# Submit audio answer
+POST /api/interview/:sessionId/answer
+
+# End session and get summary
+POST /api/interview/:sessionId/end
+
+# Get interview history
+GET /api/interview/history
+
+# Get performance analytics
+GET /api/interview/analytics
+```
+
+### �🎓 **Course Management**
 
 - Complete course platform with problem assignments
 - Student enrollment and progress tracking
@@ -605,12 +671,50 @@ NeoCode-v2/
 
 ### Coding Standards
 
-- **No gradients in UI** - Use solid colors (bg-white/5, border-white/10)
-- **Color palette**: Black backgrounds, white text, white/60 for secondary
-- **ESLint** for JavaScript linting
-- **Prettier** for code formatting (if configured)
-- **Async/await** for all database operations
-- **Error handling** in all controllers
+**API & Configuration:**
+
+- Use API URL (without URI) in config variables
+- Don't hardcode credentials - use environment variables
+- Support log levels (INFO, ERROR, DEBUG)
+- Never log sensitive information (passwords, keys, secrets)
+
+**Code Quality:**
+
+- Brief, concise comments explaining what code does
+- Title comments at top of each file
+- Self-explanatory function names
+- Exception handling for all external connections
+- Assume every external call can fail
+- Use keepalive & timeouts for external API calls
+
+**Database:**
+
+- Reduce DB calls through caching
+- Use table names in joins (e.g., `problem.status`, not just `status`)
+- Cache invalidation on data modification
+- Appropriate cache expiry times
+
+**Performance:**
+
+- Prefer `int` over strings where possible (faster compare)
+- Strictly define function arguments (no optional params)
+- Define interfaces for object inputs (better engine performance)
+- Use imperative loops over functional loops (map, filter, reduce)
+- Use direct access instead of nested access in loops
+- Retrieve smallest amount of data possible
+- Iterate object values directly instead of fetching by key
+
+**API Responses:**
+
+- Follow HTTP status code guidelines
+- Format JSON output properly (remove unnecessary fields)
+- Standardize error messages with function/class names
+
+**Client-Side:**
+
+- Use session and local storage appropriately
+- No gradients in UI - use solid colors (bg-white/5, border-white/10)
+- Color palette: Black backgrounds, white text, white/60 for secondary
 
 ### Testing
 

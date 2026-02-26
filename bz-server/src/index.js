@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { initializeLearningCore, healthCheck } from "./learning-core/index.js";
 import { initializeAI } from "./ai/index.js";
+import { initializeVoiceInterviewSystem, getVoiceInterviewHealth } from "./ai/voice-interview/index.js";
 
 const app = express();
 app.use(express.json());
@@ -37,8 +38,22 @@ app.use(
         console.error("⚠️  AI Module init failed (degraded mode):", error.message);
     }
 
+    try {
+        // Initialize Voice Interview System
+        await initializeVoiceInterviewSystem();
+        console.log("✅ Voice Interview System initialized");
+    } catch (error) {
+        // Non-fatal: log and continue — server must stay up
+        console.error("⚠️  Voice Interview System init failed (degraded mode):", error.message);
+    }
+
     app.get("/api/health/learning-core", async (req, res) => {
         const health = await healthCheck();
+        res.status(health.healthy ? 200 : 503).json(health);
+    });
+
+    app.get("/api/health/voice-interview", async (req, res) => {
+        const health = await getVoiceInterviewHealth();
         res.status(health.healthy ? 200 : 503).json(health);
     });
 })();
@@ -51,6 +66,7 @@ import complexityRoute from "./routes/complexity.routes.js";
 import userCoursesRoute from "./routes/courses.user.routes.js";
 import learningRoute from "./routes/learning.routes.js";
 import aiRoute from "./routes/ai.routes.js";
+import interviewRoute from "./routes/interview.routes.js";
 
 // User Routes
 app.use("/api/user", userRoute);
@@ -61,6 +77,7 @@ app.use("/api/complexity", complexityRoute);
 app.use("/api/courses", userCoursesRoute);
 app.use("/api/learning", learningRoute);
 app.use("/api/ai", aiRoute);
+app.use("/api/interview", interviewRoute);
 
 import usersRoute from "./routes/users.admin.routes.js";
 import problemsRoute from "./routes/problems.admin.routes.js";

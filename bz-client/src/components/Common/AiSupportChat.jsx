@@ -42,12 +42,7 @@ export default function AiSupportChat() {
     const location = useLocation();
     const { isLoggedIn, userData } = useUser();
 
-    // Only render chat support for logged-in users
-    if (!isLoggedIn) {
-        return null;
-    }
-
-    // widget state
+    // widget state (must be called before any conditional returns)
     const [isOpen, setIsOpen] = useState(false);
     const [inputText, setInputText] = useState("");
     const [messages, setMessages] = useState([]); // { role, content, ts, provider? }
@@ -60,15 +55,7 @@ export default function AiSupportChat() {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    // ── check AI availability on mount ──────────────────────────────────
-    useEffect(() => {
-        checkAiStatus();
-    }, []);
-
-    // ── re-check status every time the panel opens ───────────────────────
-    useEffect(() => {
-        if (isOpen) checkAiStatus();
-    }, [isOpen]);
+    // ── Helper functions (defined before hooks that use them) ───────────
 
     async function checkAiStatus() {
         try {
@@ -96,20 +83,6 @@ export default function AiSupportChat() {
             }
         }
     }
-
-    // ── auto-scroll to latest message ───────────────────────────────────
-    useEffect(() => {
-        if (isOpen && messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages, isOpen]);
-
-    // ── focus input when chat is opened ─────────────────────────────────
-    useEffect(() => {
-        if (isOpen && inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [isOpen]);
 
     // ── build conversation history payload (last MAX_HISTORY messages) ──
     function buildHistory() {
@@ -222,6 +195,43 @@ export default function AiSupportChat() {
     function toggleOpen() {
         setIsOpen((prev) => !prev);
         setError(null);
+    }
+
+    // ── Effects (after all functions are defined) ───────────────────────
+
+    // ── check AI availability on mount ──────────────────────────────────
+    useEffect(() => {
+        if (isLoggedIn) {
+            checkAiStatus();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoggedIn]);
+
+    // ── re-check status every time the panel opens ───────────────────────
+    useEffect(() => {
+        if (isLoggedIn && isOpen) {
+            checkAiStatus();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, isLoggedIn]);
+
+    // ── auto-scroll to latest message ───────────────────────────────────
+    useEffect(() => {
+        if (isOpen && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, isOpen]);
+
+    // ── focus input when chat is opened ─────────────────────────────────
+    useEffect(() => {
+        if (isOpen && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [isOpen]);
+
+    // Only render chat support for logged-in users (after all hooks are called)
+    if (!isLoggedIn) {
+        return null;
     }
 
     // ── render ───────────────────────────────────────────────────────────

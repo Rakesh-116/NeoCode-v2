@@ -154,6 +154,16 @@ const Header = () => {
                             Learning
                         </Link>
                     )}
+                    {isLoggedIn && (
+                        <Link
+                            to="/interviews"
+                            className={`hover:text-white transition-colors ${
+                                location.pathname.startsWith("/interview") ? "text-white" : "text-white/70"
+                            }`}
+                        >
+                            Interviews
+                        </Link>
+                    )}
                     {userData && userData.role === "admin" && (
                         <Link
                             to="/admin"
@@ -326,6 +336,17 @@ const Header = () => {
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 Learning
+                            </Link>
+                        )}
+                        {isLoggedIn && (
+                            <Link
+                                to="/interviews"
+                                className={`hover:text-white transition-colors ${
+                                    location.pathname.startsWith("/interview") ? "text-white" : "text-white/70"
+                                }`}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Interviews
                             </Link>
                         )}
                         {userData && userData.role === "admin" && (
