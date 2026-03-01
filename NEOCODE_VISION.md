@@ -18,9 +18,11 @@
 
 ## 🎯 The Big Idea
 
-> **"Duolingo + Notion + Personal Mentor + Career Coach + AI Memory Brain"**
+> **"Duolingo + Notion + Personal Mentor + Career Coach + AI Memory Brain + Jarvis"**
 
-NeoCode is evolving into a **comprehensive AI mentor system** that:
+NeoCode is evolving beyond a learning platform into a **Personal Operating System for Continuous Growth**.
+
+### **Layer 1: The Learning Platform** (Current State)
 
 - **Knows your goals** (VR Engineer, SDE, ML Engineer, etc.)
 - **Knows your current skill level** (assessed, not assumed)
@@ -29,6 +31,23 @@ NeoCode is evolving into a **comprehensive AI mentor system** that:
 - **Validates your learning** (no fake progress)
 - **Evolves with you** (adaptive difficulty, feedback loops)
 - **Helps you become what you want** (career-focused outcomes)
+
+### **Layer 2: The Intelligence Amplifier** (Next Evolution)
+
+- **Analyzes your performance patterns** (contests, interviews, code quality)
+- **Identifies blind spots** (repeated mistakes, weak mental models)
+- **Detects cognitive overload** (too many goals, burnout signals)
+- **Tracks reality vs intention** (time spent vs goal priorities)
+- **Generates automated insights** (weekly reviews, improvement plans)
+- **Provides conversational intelligence** (understands clarification, adapts explanations)
+
+### **Layer 3: The Personal Jarvis** (Future Vision)
+
+- **Ambient presence** ("Hi Karen" - voice-activated anywhere)
+- **Multi-domain optimization** (learning + health + productivity + finance)
+- **Proactive assistance** (suggests actions before you ask)
+- **Decision training** (log reasoning, predict outcomes, learn from patterns)
+- **Leverage multiplier** (reduces manual work, amplifies impact)
 
 ---
 
@@ -415,7 +434,7 @@ NeoMentor is:
 
 ## 📈 Success Metrics
 
-### **User Metrics**
+### **User Metrics (Learning)**
 
 - Skill level progression (0 → 3 in DSA = success)
 - Validation pass rate (> 70% = healthy)
@@ -423,12 +442,22 @@ NeoMentor is:
 - Learning streak (> 7 days = habit formed)
 - Goal achievement rate (VR Engineer roadmap 50% done)
 
+### **User Metrics (Intelligence Amplification)**
+
+- Contest improvement rate (next contest score > previous)
+- Mistake repetition reduction (same error < 2 times)
+- Time-to-solve improvement (20% faster on similar problems after practice)
+- Cognitive load reduction (from 15 tasks → focused 5 tasks)
+- Goal-time alignment score (time spent matches goal priority > 70%)
+
 ### **System Metrics**
 
 - Recommendation accuracy (user finds it useful)
 - Adaptive difficulty success (failure rate 20-30% = optimal)
 - Feedback loop engagement (users rate roadmaps)
 - Retention (7-day, 30-day active users)
+- Weekly review engagement (users read and act on insights)
+- Pattern detection accuracy (identified weakness → improved next cycle)
 
 ### **AI Metrics**
 
@@ -436,6 +465,8 @@ NeoMentor is:
 - Hallucination rate (0% acceptable)
 - Response latency (< 3s for coaching)
 - Cache hit rate (> 60% for common queries)
+- Conversation coherence (follow-up questions answered correctly)
+- Clarification success rate (rephrased explanations understood)
 
 ---
 
@@ -485,15 +516,279 @@ NeoMentor is:
     - Turn-by-turn evaluation
 - [x] Normalized questions system
 - [x] Evaluation results tracking
-- [ ] mem0 vector memory integration (planned)
-- [ ] Peer comparison (anonymous) (planned)
-- [ ] Mobile app (planned)
 - [ ] **Interview Multi-Attempt System** (in progress)
     - Session-wise attempts tracking
     - Attempt history and comparison
     - Performance improvement analytics
+- [ ] mem0 vector memory integration (planned)
+
+### **Phase 5: Intelligence Amplification (The Jarvis Layer)** 🎯
+
+**🏆 Contest Performance Intelligence Engine** (CTO Priority)
+
+- [ ] Contest participation tracking
+- [ ] Code submission analysis during contests
+    - Wrong submissions pattern detection
+    - Time spent per problem analysis
+    - Retry patterns and approach changes
+    - Code quality and Big-O detection
+- [ ] Weakness mapping after each contest
+    - Topic-wise performance breakdown
+    - Mistake clustering and categorization
+    - Confidence gap identification
+    - Speed vs accuracy trade-offs
+- [ ] Improvement loop system
+    - AI-generated practice sets based on weaknesses
+    - Before/after contest performance comparison
+    - Weak area score tracking over time
+    - Time-to-solve reduction metrics
+- [ ] Contest readiness predictor
+    - Estimated rating based on current skills
+    - Suggested topics to focus before next contest
+    - Performance improvement velocity
+
+**🧠 Conversational Intelligence (Follow-up System)**
+
+- [ ] Turn-based conversation memory state
+- [ ] Intent detection (clarification, follow-up, new topic)
+- [ ] Context-aware question rephrasing
+    - "I didn't understand" → Simpler explanation
+    - "Can you give example?" → Concrete code example
+    - "Why?" → Deeper reasoning with analogy
+- [ ] Conversation depth tracking
+- [ ] Dynamic branching (not linear Q&A)
+- [ ] Persistent context across interview sessions
+
+**📊 Weekly Life Review Generator** (Auto-Intelligence)
+
+- [ ] Automated Sunday review reports
+    - Learning summary (problems solved, topics covered, mistakes made)
+    - Skill progression visualization (this week vs last week)
+    - Goal progress percentage (roadmap completion tracking)
+    - Productivity metrics (active learning hours, streak days)
+- [ ] Mistake summary across all domains
+- [ ] Improvement plan for next week (auto-generated, not generic)
+- [ ] Pattern detection: "You're stuck on graphs for 3 weeks → Need different approach"
+
+**🎯 Mistake Pattern Intelligence** (Cross-Domain Learning)
+
+- [ ] Unified mistake tracking across:
+    - Code submissions (syntax, logic, algorithm choice)
+    - Interview performance (communication, clarity, depth)
+    - Contest performance (time management, panic patterns)
+    - Learning validation (quiz failures, concept gaps)
+- [ ] Repeated mistake detection
+    - "You've made off-by-one errors 12 times in 2 months"
+    - "You always panic on graph problems under time pressure"
+    - "You skip reading problem constraints carefully"
+- [ ] Cognitive pattern analysis
+    - Identify weak mental models
+    - Detect knowledge vs application gaps
+    - Find topics that need spaced repetition
+- [ ] Behavioral feedback loop
+    - "When you slow down, your acceptance rate is 85% vs 45% when rushing"
+
+**⚡ Cognitive Load Analyzer** (Anti-Burnout System)
+
+- [ ] Active goal tracking across platform
+- [ ] Open task overflow detection (>10 incomplete tasks = warning)
+- [ ] Learning velocity monitoring
+    - Normal: 5 problems/week → Suddenly 0 → Burnout signal
+    - Overload: Enrolled in 3 courses + roadmap + contest prep = Too much
+- [ ] Context switching penalty detection
+    - Jumping between too many topics without mastery
+- [ ] Recommended "Focus Mode"
+    - Suggest: "Pause roadmap, finish DSA course first"
+    - Reduce cognitive clutter
+- [ ] Rest day suggestions (data-driven, not random)
+
+**🛤️ Life Roadmap Generator** (Beyond Code)
+
+- [ ] Big life goals with measurable milestones
+    - Example: "Top 5% Backend Engineer in 18 months"
+    - Broken into: Skills → Projects → Milestones → Weekly targets
+- [ ] Multi-domain roadmaps
+    - Technical skills + Soft skills + Health + Finance
+- [ ] Dependency-aware planning (can't learn system design without DSA)
+- [ ] Weekly target auto-generation from big goal
+- [ ] Progress tracking with course correction
+
+**⏱️ Time Leak Detection** (Reality Check System)
+
+- [ ] Optional: Track active learning time vs claimed time
+- [ ] Compare time investment with goal priorities
+    - Goal: "VR Engineer" → Time: 80% on web dev → Mismatch alert
+- [ ] Productivity heatmap (when are you most effective?)
+- [ ] Time vs outcome analysis
+    - "You spent 10 hours on trees, still failing → Need different strategy"
+- [ ] Visual mismatch dashboard
+    - Expected effort distribution vs actual
+    - Destroys illusions with data
+
+### **Phase 6: Ambient Intelligence (Future Vision)** 🌌
+
+**🎙️ "Hi Karen" - Wake-Word Voice Assistant**
+
+- [ ] Global wake-word detection (Electron app or native wrapper)
+- [ ] Floating AI assistant on any page
+- [ ] Context-aware responses based on current page
+    - On problem page: "Karen, explain this approach" → Code explanation
+    - On dashboard: "Karen, what should I focus today?" → Daily plan
+    - Anywhere: "Karen, what's my weak topic?" → Skill analysis
+- [ ] Voice-first interactions for hands-free learning
+- [ ] Continuous conversation context
+
+**📈 Performance Engine** (Body + Mind Optimization)
+
+- [ ] Optional health tracking integration
+    - Sleep hours vs code performance correlation
+    - Energy levels throughout day
+- [ ] Screen time monitoring
+- [ ] Habit streak tracking (gym, coding, sleep)
+- [ ] "You're underperforming this week" early warnings
+- [ ] Suggested rest/focus based on bio-patterns
+
+**💰 Money Intelligence** (Future Enhancement)
+
+- [ ] Optional expense tracking
+- [ ] Investment vs learning ROI
+- [ ] "Are you spending on courses you don't finish?" alerts
+- [ ] Recommended learning investments
+
+**🧭 AI Decision Journal** (Judgment Training)
+
+- [ ] Log big decisions with reasoning
+- [ ] Predict outcome before action
+- [ ] Auto-review after 30 days
+- [ ] Decision quality scoring over time
+- [ ] Learn from your own past patterns
 
 ---
+
+## 🎯 Updated North Star
+
+> **"NeoCode is not just a learning platform. It's your personal operating system for continuous growth - in coding, in thinking, in life. It knows you, learns from you, and evolves with you. Like Jarvis for Tony Stark, it reduces manual work, identifies blind spots, and helps you become the engineer you want to be."**
+
+## Build the system that makes you 10x, not just teaches you 10 things.
+
+## 🚦 Implementation Priority (What to Build First)
+
+### **🔴 High Priority - Build Now** (Maximum Leverage)
+
+1. **Contest Performance Intelligence** (CTO request + differentiates product)
+    - Direct feedback loop: Contest → Analysis → Practice → Improvement
+    - Measurable outcomes
+    - Unique in market
+    - Fits existing architecture
+
+2. **Conversational Intelligence** (Makes interviews 10x better)
+    - Transform static Q&A into dynamic conversations
+    - Immediate user experience improvement
+    - Leverage existing voice interview system
+    - Low complexity, high impact
+
+3. **Mistake Pattern Detector** (Behavioral Intelligence)
+    - Already tracking mistakes
+    - Add pattern recognition layer
+    - Compound benefit: Better over time
+    - Core to learning effectiveness
+
+4. **Weekly Life Review Generator** (Auto-Intelligence)
+    - Low effort to build (data already exists)
+    - High perceived value (users love summaries)
+    - Creates engagement loop (check every Sunday)
+    - Foundation for auto-insights
+
+### **🟡 Medium Priority - Build Soon** (Force Multipliers)
+
+5. **Cognitive Load Analyzer** (Prevents Burnout)
+    - Keeps users engaged longer
+    - Prevents churn from overwhelm
+    - Requires goal + task tracking (already have it)
+    - Differentiated feature
+
+6. **Time Leak Detection** (Reality Check System)
+    - Destroys illusions with data
+    - Aligns effort with goals
+    - Requires time tracking integration
+    - High personal value for you
+
+7. **Life Roadmap Generator** (Beyond Code)
+    - Extend existing roadmap system
+    - Multi-domain planning
+    - Transforms NeoCode into personal OS
+    - Foundation for Jarvis vision
+
+### **🟢 Low Priority - Build Later** (Nice to Have)
+
+8. **"Hi Karen" Voice Assistant** (Requires infrastructure)
+    - Needs Electron app or native wrapper
+    - Complex: Wake-word detection, always-on listener
+    - High engineering effort
+    - Build after core intelligence is solid
+
+9. **Performance Engine** (Health tracking)
+    - Out of scope for now
+    - Integration complexity (fitness APIs)
+    - Focus on learning intelligence first
+
+10. **Money Intelligence** (Finance tracking)
+    - Out of scope for now
+    - Build after core value is proven
+
+11. **AI Decision Journal** (Long-term play)
+    - Requires sustained usage
+    - Value comes after months of logging
+    - Build when system is mature
+
+### **❌ Don't Build (Yet)**
+
+- Mobile app (web-first, then mobile)
+- Peer comparison (social features are distracting)
+- Cryptocurrency/blockchain (unnecessary complexity)
+- Gamification beyond streaks (can become manipulative)
+
+---
+
+## 🎯 Next 90 Days: The Focus
+
+**Month 1: Contest Intelligence + Conversational System**
+
+- Week 1-2: Contest tracking + code analysis
+- Week 3-4: Conversational memory + intent detection
+
+**Month 2: Pattern Intelligence + Auto-Reviews**
+
+- Week 5-6: Mistake pattern detector
+- Week 7-8: Weekly review generator
+
+**Month 3: Cognitive Systems + Time Intelligence**
+
+- Week 9-10: Cognitive load analyzer
+- Week 11-12: Time-goal alignment tracking
+
+After 90 days, you'll have:
+
+- Enterprise-ready feature (Contest Intelligence)
+- 10x better interviews (Conversational System)
+- Behavioral insights (Pattern Detection)
+- Auto-engagement (Weekly Reviews)
+- Burnout prevention (Cognitive Load)
+- Reality checks (Time Tracking)
+
+That's a complete "Intelligence Amplification" layer. 🚀
+
+---
+
+## 💡 Final Thought
+
+You're not building a coding platform.
+
+You're building the AI system that makes Rakesh 10x better.
+
+That's rare. That's valuable. That's worth building.
+
+## Now execute. 🔥
 
 ## 🎓 Example: VR Engineer Journey
 
@@ -592,12 +887,30 @@ Week 11-12: VR Integration
 - ✅ **Privacy-first AI** (local LLM option)
 - ✅ **Transparent system** (explainable recommendations)
 
-This is **YC-style product thinking**:
+### **What Makes It 10x (The Jarvis Layer):**
+
+- ✅ **Contest intelligence** (analyzes competition patterns, tracks improvement)
+- ✅ **Conversational depth** (understands clarification intent, adapts explanations)
+- ✅ **Pattern recognition** (finds repeated mistakes across code/interviews/contests)
+- ✅ **Cognitive load management** (prevents burnout, suggests focus)
+- ✅ **Reality checks** (time-goal mismatch detection, destroys illusions with data)
+- ✅ **Auto-reviews** (weekly insights without manual journaling)
+- ✅ **Beyond code** (integrates learning, health, productivity, life goals)
+
+### **This is YC-style product thinking:**
 
 - Solves real pain (random learning → structured growth)
-- Unique moat (AI mentor with memory + validation)
+- Unique moat (AI mentor with memory + validation + intelligence amplification)
 - Scalable (plugin architecture)
-- Defensible (proprietary skill graph + roadmap engine)
+- Defensible (proprietary skill graph + roadmap engine + pattern intelligence)
+- **Network effects** (more usage → better pattern detection → smarter recommendations)
+
+### **This is Jarvis-level thinking:**
+
+- Not just a tool you use
+- A system that knows you, learns from you, and makes you better
+- Reduces friction, identifies blind spots, amplifies leverage
+- Operates like an extension of your brain
 
 ---
 
