@@ -13,6 +13,8 @@ import express from "express";
 import multer from "multer";
 import { userAuthentication } from "../middlewares/authentication.js";
 import * as interviewController from "../controllers/interview.controller.js";
+import { executeInterviewCode, submitInterviewCode } from "../controllers/interviewCode.controller.js";
+import * as smartReviewController from "../controllers/smartReview.controller.js";
 
 const router = express.Router();
 
@@ -39,6 +41,30 @@ router.use(userAuthentication);
 // ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
+
+/**
+ * GET /api/interview/smart-review/due
+ * Get due concepts for Smart Review
+ */
+router.get("/smart-review/due", smartReviewController.getDueConcepts);
+
+/**
+ * POST /api/interview/smart-review/start
+ * Start a Smart Review session
+ */
+router.post("/smart-review/start", smartReviewController.startSmartReview);
+
+/**
+ * POST /api/interview/smart-review/complete
+ * Complete a Smart Review session and update cards
+ */
+router.post("/smart-review/complete", smartReviewController.completeSmartReview);
+
+/**
+ * GET /api/interview/smart-review/stats
+ * Smart Review analytics
+ */
+router.get("/smart-review/stats", smartReviewController.getSmartReviewStats);
 
 /**
  * POST /api/interview/start
@@ -78,6 +104,28 @@ router.post("/:sessionId/answer", upload.single("audio"), interviewController.su
  * End interview session and get summary
  */
 router.post("/:sessionId/end", interviewController.endInterview);
+
+/**
+ * POST /api/interview/:sessionId/retake
+ * Retake (clone) an existing interview session (same settings + questions)
+ */
+router.post("/:sessionId/retake", interviewController.retakeInterview);
+
+// ============================================================================
+// CODING (SEPARATE FROM NORMAL SUBMISSIONS)
+// ============================================================================
+
+/**
+ * POST /api/interview/:sessionId/turn/:turnId/code/execute
+ * Execute code for a coding interview turn (no normal submission record)
+ */
+router.post("/:sessionId/turn/:turnId/code/execute", executeInterviewCode);
+
+/**
+ * POST /api/interview/:sessionId/turn/:turnId/code/submit
+ * Store a code submission tied to this interview session/turn
+ */
+router.post("/:sessionId/turn/:turnId/code/submit", submitInterviewCode);
 
 // ============================================================================
 // DATA RETRIEVAL

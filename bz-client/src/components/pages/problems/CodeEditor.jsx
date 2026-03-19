@@ -20,9 +20,36 @@ const CodeEditor = ({
   solution,
   openEditorData,
   courseId,
+  allowSubmit,
+  allowExpectedOutput,
+  executeEndpoint,
+  submitEndpoint,
+  storageKey = "storedDataList",
+  submitRequiresProblemId = true,
+  executeExtraBody,
+  submitExtraBody,
+  enableSubmissionModal = true,
+  editorHeight = "60vh",
 }) => {
   const editorRef = useRef(null);
   const navigate = useNavigate();
+
+  const normalizedSampleIO = sampleIO || { input: "", output: "" };
+  const normalizedProhibitedKeys = prohibitedKeys || null;
+  const hasReferenceOutput = Boolean(normalizedSampleIO.output);
+  const canSubmit =
+    (allowSubmit ?? true) && (!submitRequiresProblemId || Boolean(problemId));
+  const canShowExpectedOutput =
+    (allowExpectedOutput ?? true) && Boolean(problemId) && Boolean(solution);
+
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+  const resolveUrl = (endpoint) => {
+    if (!endpoint) return null;
+    if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+      return endpoint;
+    }
+    return `${API_BASE_URL}${endpoint}`;
+  };
 
   const [language, setLanguage] = useState(languages[1]);
   const [theme, setTheme] = useState("vs-dark");
@@ -84,7 +111,7 @@ const CodeEditor = ({
   };
 
   const selectedInputValue =
-    inputDisplay === "custom" ? customInput : sampleIO.input || "";
+    inputDisplay === "custom" ? customInput : normalizedSampleIO.input || "";
 
   const handleCustomInputChange = (e) => {
     setCustomInput(e.target.value);
@@ -99,9 +126,9 @@ const CodeEditor = ({
   };
 
   const checkForProhibitedKeys = (sourceCode, language) => {
-    if (!language || !prohibitedKeys[language]) return false;
+    if (!language || !normalizedProhibitedKeys || !normalizedProhibitedKeys[language]) return false;
 
-    const pkeyArray = prohibitedKeys[language].split(",");
+    const pkeyArray = normalizedProhibitedKeys[language].split(",");
 
     for (let i = 0; i < pkeyArray.length; i++) {
       if (sourceCode.includes(pkeyArray[i].trim())) return true;
@@ -126,7 +153,7 @@ const CodeEditor = ({
           </div>
           <h1 className="text-start mt-6">
             Do not use any prohibited keys mentioned, you are using{" "}
-            <span className="text-red-600">'{prohibitedKeys[language]}'</span>{" "}
+            <span className="text-red-600">'{normalizedProhibitedKeys?.[language]}'</span>{" "}
             in your code
           </h1>
         </div>
@@ -165,7 +192,7 @@ const CodeEditor = ({
     console.log(solution);
     const sourceCode = editorRef.current.getValue();
 
-    if (prohibitedKeys !== null) {
+    if (normalizedProhibitedKeys !== null) {
       if (checkForProhibitedKeys(sourceCode, language)) {
         setOpenProhibitedKeyModal(true);
         return;
@@ -177,17 +204,18 @@ const CodeEditor = ({
     //   navigate("/login");
     //   return;
     // }
-    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+    const url = resolveUrl(executeEndpoint || "/api/problem/execute");
 
     try {
       setIsCodeRunning(true);
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/problem/execute`,
+        url,
         {
           sourceCode,
           language,
           input: selectedInputValue,
+          ...(executeExtraBody || {}),
         },
         {
           headers: {
@@ -213,9 +241,11 @@ const CodeEditor = ({
   };
 
   const submitCode = async () => {
+    if (!canSubmit) return;
+
     setSubmissionResult(null);
     const sourceCode = editorRef.current.getValue();
-    if (prohibitedKeys !== null) {
+    if (normalizedProhibitedKeys !== null) {
       if (checkForProhibitedKeys(sourceCode)) {
         setOpenProhibitedKeyModal(true);
         return;
@@ -229,23 +259,31 @@ const CodeEditor = ({
     // }
     console.log("JWT Token:", token);
     console.log("si:", selectedInputValue);
-    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+    const url = resolveUrl(submitEndpoint || "/api/problem/submit");
     try {
-      setOpenModal(true);
+      if (enableSubmissionModal) setOpenModal(true);
       const requestBody = {
-        problemId,
         sourceCode,
         language,
         input: selectedInputValue,
       };
+
+      // Add problemId if this submit endpoint requires it
+      if (problemId) {
+        requestBody.problemId = problemId;
+      }
 
       // Add courseId if present (course context)
       if (courseId) {
         requestBody.courseId = courseId;
       }
 
+      if (submitExtraBody) {
+        Object.assign(requestBody, submitExtraBody);
+      }
+
       const response = await axios.post(
-        `${API_BASE_URL}/api/problem/submit`,
+        url,
         requestBody,
         {
           headers: {
@@ -257,10 +295,15 @@ const CodeEditor = ({
       const finalResult = response.data;
       console.log("luffy final:", finalResult);
       setSubmissionResult(finalResult);
+      if (!enableSubmissionModal) {
+        const v = finalResult?.verdict || finalResult?.submission?.verdict;
+        setOutputValue(v ? `Verdict: ${v}` : "Submitted (interview submission saved).");
+      }
     } catch (error) {
       console.error("Error: ", error);
-      setOutputValue(error.response.data);
-      setSubmissionResult(error.response.data);
+      const errorMessage = error?.response?.data?.message || "Submission failed.";
+      setOutputValue(errorMessage);
+      setSubmissionResult(error?.response?.data || null);
       setIsCodeRunning(false);
       // JWT token is present in cookies but it is expired, so instead of refreshing the token, we are asking the user to login again, so the new token will re-initialized to exporation time
       // All the expiration error will have status code of 405
@@ -271,6 +314,8 @@ const CodeEditor = ({
   };
 
   const getExpectedOutput = async () => {
+    if (!canShowExpectedOutput) return;
+
     const token = Cookies.get("neo_code_jwt_token");
     const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     try {
@@ -435,7 +480,7 @@ const CodeEditor = ({
   useEffect(() => {
     if (openEditorData?.code === null && submissionId === null) {
       const storedList =
-        JSON.parse(localStorage.getItem("storedDataList")) || [];
+        JSON.parse(localStorage.getItem(storageKey)) || [];
       const savedCode = storedList.find(
         (item) => item.title === title && item.selectedLanguage === language
       );
@@ -455,7 +500,7 @@ const CodeEditor = ({
     <div className="flex flex-col h-full w-full rounded-md px-4">
       <div className="flex justify-center items-center w-full h-full">
         {openProhibitedKeyModal && renderProhibitedKeyModal()}
-        {openModal && (
+        {enableSubmissionModal && openModal && (
           <SubmissionModal
             submissionResult={submissionResult}
             editorRef={editorRef}
@@ -503,7 +548,7 @@ const CodeEditor = ({
 
               // Step 2: Remove saved entry from localStorage
               const storedList =
-                JSON.parse(localStorage.getItem("storedDataList")) || [];
+                JSON.parse(localStorage.getItem(storageKey)) || [];
 
               const updatedList = storedList.filter(
                 (item) =>
@@ -511,7 +556,7 @@ const CodeEditor = ({
               );
 
               localStorage.setItem(
-                "storedDataList",
+                storageKey,
                 JSON.stringify(updatedList)
               );
             }}
@@ -530,7 +575,7 @@ const CodeEditor = ({
           </button>
         </div>
 
-        <div className="rounded-lg scroll-smooth h-[60vh] w-full">
+        <div className="rounded-lg scroll-smooth w-full" style={{ height: editorHeight }}>
           <Editor
             height="100%"
             width="100%"
@@ -545,7 +590,7 @@ const CodeEditor = ({
               };
 
               const storedList =
-                JSON.parse(localStorage.getItem("storedDataList")) || [];
+                JSON.parse(localStorage.getItem(storageKey)) || [];
 
               const existingIndex = storedList.findIndex(
                 (item) =>
@@ -561,7 +606,7 @@ const CodeEditor = ({
               }
 
               localStorage.setItem(
-                "storedDataList",
+                storageKey,
                 JSON.stringify(storedList)
               );
 
@@ -591,7 +636,7 @@ const CodeEditor = ({
                 SAMPLE INPUT 1
               </option>
             </select>
-            {solution && (
+            {canShowExpectedOutput && (
               <button
                 className={`p-2 rounded-lg border border-white/50 flex justify-center items-center outline-none hover:border-white text-white transition-all duration-300 ${
                   inputDisplay === "custom" ? "block" : "hidden"
@@ -614,17 +659,19 @@ const CodeEditor = ({
               >
                 Run
               </Button>
-              <Button
-                className={`${
-                  isCodeRunning
-                    ? "bg-slate-500 text-slate-800"
-                    : "bg-green-500 hover:bg-green-600"
-                } text-white px-[12px] py-[6px]`}
-                disabled={isCodeRunning}
-                onClick={() => submitCode()}
-              >
-                Submit
-              </Button>
+              {canSubmit && (
+                <Button
+                  className={`${
+                    isCodeRunning
+                      ? "bg-slate-500 text-slate-800"
+                      : "bg-green-500 hover:bg-green-600"
+                  } text-white px-[12px] py-[6px]`}
+                  disabled={isCodeRunning}
+                  onClick={() => submitCode()}
+                >
+                  Submit
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -657,9 +704,11 @@ const CodeEditor = ({
             className={`my-2 rounded-lg p-2 w-full h-20 outline-none text-white ${
               outputValue === null
                 ? "bg-slate-500"
-                : outputValue === sampleIO.output
-                ? "bg-green-400"
-                : "bg-red-400"
+                : hasReferenceOutput
+                  ? outputValue === normalizedSampleIO.output
+                    ? "bg-green-400"
+                    : "bg-red-400"
+                  : "bg-slate-500"
             }`}
           />
 

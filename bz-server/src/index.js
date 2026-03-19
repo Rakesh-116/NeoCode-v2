@@ -16,6 +16,7 @@ app.use(
         origin: allowedOrigins,
         credentials: true,
         allowedHeaders: ["Content-Type", "Authorization"],
+        exposedHeaders: ["X-Transcription", "X-Response-Text", "X-Navigate", "X-Intent", "X-Action"],
     }),
 );
 
@@ -64,9 +65,11 @@ import snippetsRoute from "./routes/snippets.routes.js";
 import userBlogsRoute from "./routes/blogs.user.routes.js";
 import complexityRoute from "./routes/complexity.routes.js";
 import userCoursesRoute from "./routes/courses.user.routes.js";
+import courseHierarchyRoute from "./routes/courseHierarchy.routes.js";
 import learningRoute from "./routes/learning.routes.js";
 import aiRoute from "./routes/ai.routes.js";
 import interviewRoute from "./routes/interview.routes.js";
+import assistantRoute from "./ai/voice-assistant/routes/assistant.routes.js";
 
 // User Routes
 app.use("/api/user", userRoute);
@@ -75,9 +78,11 @@ app.use("/api/snippets", snippetsRoute);
 app.use("/api/blogs", userBlogsRoute);
 app.use("/api/complexity", complexityRoute);
 app.use("/api/courses", userCoursesRoute);
+app.use("/api/courses", courseHierarchyRoute); // Course hierarchy (modules, topics, content)
 app.use("/api/learning", learningRoute);
 app.use("/api/ai", aiRoute);
 app.use("/api/interview", interviewRoute);
+app.use("/api/assistant", assistantRoute); // Voice assistant
 
 import usersRoute from "./routes/users.admin.routes.js";
 import problemsRoute from "./routes/problems.admin.routes.js";

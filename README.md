@@ -33,6 +33,7 @@
 
 - **🧠 AI Mentor System** - Personalized coaching with memory of your entire learning journey
 - **🎙️ Voice Interview System** - Practice interviews with AI using natural voice conversation
+- **Smart Review (Spaced Repetition)** - Revisit weak concepts automatically based on interview performance
 - **📊 Skill-Based Learning** - Track skills across ALL courses (DSA from Course A + B = unified skill profile)
 - **✅ Validation Engine** - No fake progress - prove you learned before leveling up
 - **🎯 Career Roadmaps** - Set goals like "VR Engineer" and get AI-generated learning paths
@@ -76,6 +77,7 @@
 - **🗣️ Voice Interaction** - Natural conversation with AI interviewer (speak & listen)
 - **📚 Topic-Based Interviews** - Practice Arrays, DP, System Design, etc.
 - **👔 Role-Based Interviews** - Upload JD + resume for tailored questions
+- **Coding Interview Problems** - Full problem schema with hidden tests and combined code + speech evaluation
 - **🔌 Pluggable Architecture** - Swap STT/TTS/LLM providers without code changes
     - **Whisper** (OpenAI) for Speech-to-Text
     - **Piper TTS** for natural voice synthesis
@@ -131,6 +133,22 @@ GET /api/interview/history
 
 # Get performance analytics
 GET /api/interview/analytics
+```
+
+### Smart Review (Spaced Repetition) (NEW!)
+
+- Spaced repetition cards per concept (SM-2 simplified)
+- Due concept queue with max 10 per session
+- Gap-targeted Smart Review questions
+- Smart Review stats: due today, mastered, ease hell, streak
+
+**Smart Review API Endpoints:**
+
+```bash
+GET  /api/interview/smart-review/due
+POST /api/interview/smart-review/start
+POST /api/interview/smart-review/complete
+GET  /api/interview/smart-review/stats
 ```
 
 ### �🎓 **Course Management**
@@ -760,6 +778,8 @@ curl http://localhost:5000/api/mentor/dashboard \
 - [x] Unified dashboard
 
 ### Phase 4: Advanced Features (In Progress)
+- [x] Smart Review (spaced repetition for weak concepts)
+- [x] Coding interview problems with code + speech validation
 
 - [ ] Skill assessments (auto-generated quizzes)
 - [ ] Project-based validations

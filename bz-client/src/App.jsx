@@ -16,6 +16,7 @@ import { UserProvider } from "./context/UserContext";
 import SavedSnippets from "./components/pages/SavedSnippets";
 import Courses from "./components/pages/Courses/Courses";
 import CourseDetails from "./components/pages/Courses/CourseDetails";
+import CourseHierarchyView from "./components/pages/Courses/CourseHierarchyView";
 import LearningProfile from "./components/pages/LearningProfile";
 import Interviews from "./components/pages/Interview/Interviews";
 import InterviewSetup from "./components/pages/Interview/InterviewSetup";
@@ -36,6 +37,7 @@ import AdminUserAnalysis from "./components/pages/Admin/AdminUserAnalysis";
 import AdminProblemManagement from "./components/pages/Admin/Problems/AdminProblemManagement";
 import EditProblem from "./components/pages/Admin/Problems/EditProblem";
 import AiSupportChat from "./components/Common/AiSupportChat";
+import VoiceAssistant from "./components/Common/VoiceAssistant";
 
 function App() {
     return (
@@ -54,7 +56,7 @@ function App() {
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/savedsnippets" element={<SavedSnippets />} />
                     <Route path="/courses" element={<Courses />} />
-                    <Route path="/courses/:id" element={<CourseDetails />} />
+                    <Route path="/courses/:id" element={<CourseHierarchyView />} />
                     <Route path="/learning/profile" element={<LearningProfile />} />
 
                     {/* AI Voice Interview Routes */}
@@ -81,6 +83,8 @@ function App() {
                 </Routes>
                 {/* Global floating AI support chat — available on all pages */}
                 <AiSupportChat />
+                {/* Voice Assistant - Karen (Hey Karen) */}
+                <VoiceAssistant />
             </UserProvider>
             <ToastContainer
                 position="top-right"

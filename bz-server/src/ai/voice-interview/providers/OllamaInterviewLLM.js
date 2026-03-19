@@ -124,6 +124,14 @@ export default class OllamaInterviewLLM extends IInterviewLLM {
             });
         }
 
+        if (context.smartReview) {
+            basePrompt += `\n**Smart Review Context:**\n`;
+            basePrompt += `- Last Score: ${context.smartReview.lastScore}\n`;
+            basePrompt += `- Missed Subconcepts: ${JSON.stringify(context.smartReview.missedSubconcepts || [])}\n`;
+            basePrompt += `\n**Smart Review Instructions:**\n`;
+            basePrompt += `Generate a question that specifically targets the user's gap, not a generic question about the concept.\n`;
+        }
+
         basePrompt += `\n**Instructions:**
 1. Generate ONE interview question appropriate for the context
 2. Make it specific and technical
@@ -133,8 +141,21 @@ export default class OllamaInterviewLLM extends IInterviewLLM {
   "question": "your question text",
   "type": "technical|behavioral|system_design|coding",
   "difficulty": "easy|medium|hard",
-  "expectedKeywords": ["keyword1", "keyword2"]
+  "expectedKeywords": ["keyword1", "keyword2"],
+  "problemSpec": null | {
+    "title": "short title",
+    "description": "full statement",
+    "input_format": "input format",
+    "output_format": "output format",
+    "constraints": "comma-separated constraints",
+    "sample_testcase": {"input": "...", "output": "..." },
+    "hidden_testcases": [{"input":"...","output":"..."}],
+    "explaination": "high level explanation (optional)",
+    "category": ["Array", "String", "Graph", "Dynamic Programming", "Math", "Pattern", "I/O"],
+    "prohibited_keys": {"cpp":"...", "java":"...", "python":"..."} | null
+  }
 }
+5. If type is "coding", you MUST fill a complete problemSpec suitable for NeoCode's Create Problem API.
 
 Return ONLY valid JSON, no additional text.`;
 
@@ -264,6 +285,7 @@ Return JSON with same structure as before.`;
                 type: parsed.type || "technical",
                 difficulty: parsed.difficulty || "medium",
                 expectedKeywords: parsed.expectedKeywords || [],
+                problemSpec: parsed.problemSpec || null,
                 metadata: { rawResponse: response },
             };
         } catch (error) {
@@ -275,6 +297,7 @@ Return JSON with same structure as before.`;
                 type: "technical",
                 difficulty: "medium",
                 expectedKeywords: [],
+                problemSpec: null,
                 metadata: { parseError: true },
             };
         }

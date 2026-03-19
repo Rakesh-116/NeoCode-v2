@@ -20,11 +20,11 @@ export default class WhisperSTTProvider extends ISTTProvider {
     name = "whisper";
     version = "1.0.0";
     supportsStreaming = false;
-    supportedFormats = ["wav", "mp3", "ogg", "flac", "m4a"];
+    supportedFormats = ["wav", "mp3", "ogg", "flac", "m4a", "webm"];
 
     constructor(config = {}) {
         super();
-        this.modelSize = config.model || process.env.WHISPER_MODEL || "base";
+        this.modelSize = config.model || process.env.WHISPER_MODEL || "tiny"; // tiny=fastest, base, small, medium, large
         this.language = config.language || "en";
         this.temperature = config.temperature || 0.0;
         this.whisperPath = config.whisperPath || "whisper"; // Assumes whisper is in PATH
@@ -99,7 +99,9 @@ export default class WhisperSTTProvider extends ISTTProvider {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
-        const tempFilePath = path.join(tempDir, `whisper_${Date.now()}.wav`);
+        // Save as .webm (browser MediaRecorder format) and let Whisper handle it
+        // Whisper natively supports webm/opus format
+        const tempFilePath = path.join(tempDir, `whisper_${Date.now()}.webm`);
 
         // Use synchronous write to ensure file is fully written before returning
         // This prevents race condition where Whisper tries to read file before it's ready

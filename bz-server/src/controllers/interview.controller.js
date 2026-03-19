@@ -18,6 +18,7 @@
 import interviewOrchestrator from "../ai/voice-interview/services/InterviewOrchestrator.service.js";
 import voiceProviderRegistry from "../ai/voice-interview/providers/ProviderRegistry.js";
 import { pool } from "../database/connect.db.js";
+import { populateCardsFromSession } from "../services/cardPopulation.service.js";
 
 // ============================================================================
 // SESSION MANAGEMENT
@@ -226,9 +227,9 @@ export const submitAnswer = async (req, res) => {
         });
     } catch (error) {
         console.error("[InterviewController] Error processing answer:", error);
-        res.status(500).json({
+        res.status(error.statusCode || 500).json({
             success: false,
-            message: "Failed to process answer",
+            message: error.message || "Failed to process answer",
             error: error.message,
         });
     }
@@ -277,6 +278,14 @@ export const endInterview = async (req, res) => {
 
         const summary = await interviewOrchestrator.endSession(sessionId);
 
+        setImmediate(async () => {
+            try {
+                await populateCardsFromSession(sessionId, userId);
+            } catch (error) {
+                console.warn("[InterviewController] Smart review card population failed:", error.message);
+            }
+        });
+
         res.status(200).json({
             success: true,
             summary,
@@ -288,6 +297,32 @@ export const endInterview = async (req, res) => {
             success: false,
             message: "Failed to end interview",
             error: error.message,
+        });
+    }
+};
+
+/**
+ * Retake an existing interview by cloning its settings + questions into a new session.
+ * Authenticated: Yes
+ * Method: POST
+ * Endpoint: /api/interview/:sessionId/retake
+ */
+export const retakeInterview = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const userId = req.userId;
+
+        const session = await interviewOrchestrator.retakeSession(sessionId, userId);
+
+        return res.status(201).json({
+            success: true,
+            session,
+        });
+    } catch (error) {
+        console.error("[InterviewController] Error retaking interview:", error);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || "Failed to retake interview",
         });
     }
 };

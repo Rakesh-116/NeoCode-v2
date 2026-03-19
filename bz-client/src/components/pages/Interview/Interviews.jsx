@@ -7,6 +7,8 @@ import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import Header from "../Header";
 import Footer from "../Footer";
+import SmartReviewCard from "../../interviews/SmartReviewCard";
+import SmartReviewModal from "../../interviews/SmartReviewModal";
 
 const Interviews = () => {
     const navigate = useNavigate();
@@ -19,6 +21,7 @@ const Interviews = () => {
         bestScore: 0,
     });
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [showSmartReviewModal, setShowSmartReviewModal] = useState(false);
 
     useEffect(() => {
         fetchInterviewHistory();
@@ -93,6 +96,32 @@ const Interviews = () => {
         } catch (error) {
             console.error("Error deleting interview:", error);
             toast.error(error.response?.data?.message || "Failed to delete interview");
+        }
+    };
+
+    const startSmartReviewSession = async () => {
+        const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+        const jwtToken = Cookies.get("neo_code_jwt_token");
+
+        if (!jwtToken) {
+            navigate("/login");
+            return;
+        }
+
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/api/interview/smart-review/start`,
+                {},
+                { headers: { Authorization: `Bearer ${jwtToken}` } },
+            );
+            const sessionId = response.data?.session?.sessionId;
+            if (!sessionId) {
+                toast.info("No concepts due right now");
+                return;
+            }
+            navigate(`/interview/room/${sessionId}`);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to start Smart Review");
         }
     };
 
@@ -173,7 +202,7 @@ const Interviews = () => {
                         <h2 className="text-2xl font-bold">Start New Interview</h2>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                         <button
                             onClick={() => navigate("/interview/setup?type=topic")}
                             className="bg-white/10 border border-white/20 rounded-lg p-6 text-left hover:bg-white/15 hover:border-white/30 transition-all duration-300 group"
@@ -199,6 +228,9 @@ const Interviews = () => {
                             </p>
                             <span className="text-green-400">Upload JD & Resume →</span>
                         </button>
+                        <div className="md:col-span-2 xl:col-span-1">
+                            <SmartReviewCard onStartReview={() => setShowSmartReviewModal(true)} />
+                        </div>
                     </div>
                 </motion.div>
 
@@ -311,6 +343,12 @@ const Interviews = () => {
                     </motion.div>
                 </div>
             )}
+
+            <SmartReviewModal
+                isOpen={showSmartReviewModal}
+                onClose={() => setShowSmartReviewModal(false)}
+                onConfirmStart={() => startSmartReviewSession()}
+            />
 
             <Footer />
         </div>

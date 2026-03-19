@@ -6,7 +6,7 @@
  *
  * Responsibilities:
  * - Manage interview sessions (start, pause, end)
- * - Coordinate STT → LLM → TTS pipeline
+ * - Coordinate STT ? LLM ? TTS pipeline
  * - Handle question generation and evaluation
  * - Store interview data and transcripts
  * - Integrate with Learning OS evaluation system
@@ -17,6 +17,7 @@ import { pool } from "../../../database/connect.db.js";
 import voiceProviderRegistry from "../providers/ProviderRegistry.js";
 import { v4 as uuidv4 } from "uuid";
 import { ensureWavFormat } from "../../../utils/audioUtils.js";
+import { createProblemWithTestcases } from "../../../services/problemAdmin.service.js";
 
 class InterviewOrchestrator {
     constructor() {
@@ -121,7 +122,7 @@ class InterviewOrchestrator {
                 questionHistory: [],
             });
 
-            console.log(`[InterviewOrchestrator] ✅ Session ${sessionId} started`);
+            console.log(`[InterviewOrchestrator] ? Session ${sessionId} started`);
             console.log(`[InterviewOrchestrator] Pre-generating ${validatedTargetQuestions} questions...`);
 
             // Pre-generate all questions upfront to avoid polling/race conditions
@@ -140,23 +141,77 @@ class InterviewOrchestrator {
                     console.log(`[InterviewOrchestrator] Generating question ${i}/${validatedTargetQuestions}...`);
 
                     const generatedQuestion = await llmProvider.generateQuestion(context);
+                    const isCoding = this._isCodingQuestion(generatedQuestion);
+                    const questionType = isCoding ? "coding" : generatedQuestion.type || "general";
+                    const normalizedDifficulty = (generatedQuestion.difficulty || difficulty || "medium").toLowerCase();
+
+                    let problemId = null;
+                    if (isCoding) {
+                        try {
+                            const scoreByDifficulty = {
+                                cakewalk: 10,
+                                easy: 15,
+                                easymedium: 20,
+                                medium: 25,
+                                mediumhard: 30,
+                                hard: 35,
+                            };
+                            const score = scoreByDifficulty[normalizedDifficulty] || 10;
+                            const spec = this._buildProblemSpec(generatedQuestion, i);
+                            problemId = await createProblemWithTestcases({
+                                userId,
+                                forceHidden: true,
+                                data: {
+                                    title: spec.title || `Interview Coding Q${i}`,
+                                    description: spec.description || generatedQuestion.question,
+                                    input_format: spec.input_format || "N/A",
+                                    output_format: spec.output_format || "N/A",
+                                    constraints: spec.constraints || null,
+                                    prohibited_keys: spec.prohibited_keys || null,
+                                    sample_testcase: spec.sample_testcase || { input: "", output: "" },
+                                    explaination: spec.explaination || "Self Explainary!",
+                                    difficulty: normalizedDifficulty,
+                                    score,
+                                    hidden_testcases: Array.isArray(spec.hidden_testcases) ? spec.hidden_testcases : [],
+                                    category: Array.isArray(spec.category) ? spec.category : [],
+                                    solution: "No Solution",
+                                    solutionLanguage: null,
+                                    hidden: true,
+                                },
+                            });
+                        } catch (problemError) {
+                            console.error(
+                                `[InterviewOrchestrator] Failed to create problem for coding question ${i}:`,
+                                problemError.message,
+                            );
+                            problemId = null;
+                        }
+                    }
 
                     // Store question in database
                     await client.query(
                         `INSERT INTO interview_turns (
                             session_id, turn_number, question_text,
-                            question_type, question_difficulty, question_generated_at
+                            question_type, question_difficulty, requires_code_editor, problem_id, question_generated_at
                         )
-                        VALUES ($1, $2, $3, $4, $5, NOW())`,
-                        [sessionId, i, generatedQuestion.question, generatedQuestion.type || "general", difficulty],
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+                        [
+                            sessionId,
+                            i,
+                            generatedQuestion.question,
+                            questionType,
+                            normalizedDifficulty,
+                            isCoding,
+                            problemId,
+                        ],
                     );
 
                     // Add to context for next question (avoid duplicates)
                     context.previousQuestions.push(generatedQuestion.question);
 
-                    console.log(`[InterviewOrchestrator] ✅ Question ${i}/${validatedTargetQuestions} generated`);
+                    console.log(`[InterviewOrchestrator] ? Question ${i}/${validatedTargetQuestions} generated`);
                 } catch (error) {
-                    console.error(`[InterviewOrchestrator] ❌ Failed to generate question ${i}:`, error.message);
+                    console.error(`[InterviewOrchestrator] ? Failed to generate question ${i}:`, error.message);
                     // Continue generating other questions even if one fails
                 }
             }
@@ -164,7 +219,7 @@ class InterviewOrchestrator {
             // Update session's current_question_number to 0 (no question answered yet)
             await client.query(`UPDATE interview_sessions SET current_question_number = 0 WHERE id = $1`, [sessionId]);
 
-            console.log(`[InterviewOrchestrator] ✅ All ${validatedTargetQuestions} questions pre-generated`);
+            console.log(`[InterviewOrchestrator] ? All ${validatedTargetQuestions} questions pre-generated`);
 
             return {
                 sessionId: session.id,
@@ -202,7 +257,7 @@ class InterviewOrchestrator {
             // Find the next unanswered question
             const turnResult = await client.query(
                 `
-                SELECT id, turn_number, question_text, question_type, question_difficulty
+                SELECT id, turn_number, question_text, question_type, question_difficulty, requires_code_editor, problem_id
                 FROM interview_turns
                 WHERE session_id = $1 AND user_answer_text IS NULL
                 ORDER BY turn_number ASC
@@ -220,8 +275,9 @@ class InterviewOrchestrator {
             }
 
             const turn = turnResult.rows[0];
+            const problem = await this._fetchProblemById(client, turn.problem_id);
 
-            console.log(`[InterviewOrchestrator] ✅ Returning question ${turn.turn_number}`);
+            console.log(`[InterviewOrchestrator] ? Returning question ${turn.turn_number}`);
 
             // Synthesize the question to audio
             const ttsResult = await tts.synthesize(turn.question_text);
@@ -238,6 +294,9 @@ class InterviewOrchestrator {
                 turnNumber: turn.turn_number,
                 question: turn.question_text,
                 questionType: turn.question_type,
+                requiresCodeEditor: turn.requires_code_editor,
+                problemId: turn.problem_id,
+                problem,
                 audio: wavAudio.toString("base64"), // Base64 encoded WAV audio
                 audioDuration: ttsResult.duration,
                 expectedKeywords: null,
@@ -276,7 +335,7 @@ class InterviewOrchestrator {
 
             try {
                 const turnResult = await client.query(
-                    "SELECT question_text, question_difficulty FROM interview_turns WHERE id = $1",
+                    "SELECT question_text, question_difficulty, requires_code_editor, question_type FROM interview_turns WHERE id = $1",
                     [turnId],
                 );
 
@@ -284,7 +343,19 @@ class InterviewOrchestrator {
                     throw new Error("Turn not found");
                 }
 
-                const { question_text, question_difficulty } = turnResult.rows[0];
+                const { question_text, question_difficulty, requires_code_editor, question_type } = turnResult.rows[0];
+                const isCodingTurn =
+                    Boolean(requires_code_editor) || String(question_type || "").toLowerCase() === "coding";
+
+                let latestCodeSubmission = null;
+                if (isCodingTurn) {
+                    latestCodeSubmission = await this._getLatestCodeSubmission(client, turnId, session.user_id);
+                    if (!latestCodeSubmission) {
+                        const err = new Error("Please submit your code before submitting the voice answer.");
+                        err.statusCode = 400;
+                        throw err;
+                    }
+                }
 
                 // Step 3: Evaluate answer using LLM
                 const evaluation = await llm.evaluateAnswer({
@@ -293,6 +364,20 @@ class InterviewOrchestrator {
                     topic: session.topic || session.target_role,
                     difficulty: question_difficulty,
                 });
+
+                if (isCodingTurn && latestCodeSubmission) {
+                    const codeScore = this._scoreFromVerdict(latestCodeSubmission.verdict);
+                    const combinedScore = this._combineScores(evaluation.score, codeScore);
+                    const combinedVerdict = this._verdictFromScore(combinedScore);
+                    const codeVerdict = latestCodeSubmission.verdict || "UNKNOWN";
+                    const codeFeedback = this._feedbackFromVerdict(codeVerdict);
+
+                    evaluation.score = combinedScore;
+                    evaluation.verdict = combinedVerdict;
+                    evaluation.codeVerdict = codeVerdict;
+                    evaluation.codeScore = codeScore;
+                    evaluation.feedback = `Code verdict: ${codeVerdict}. ${codeFeedback} ${evaluation.feedback}`;
+                }
 
                 console.log(`[InterviewOrchestrator] Evaluation: ${evaluation.verdict} (${evaluation.score}/100)`);
 
@@ -343,7 +428,7 @@ class InterviewOrchestrator {
                     verdict: evaluation.verdict,
                 });
 
-                console.log(`[InterviewOrchestrator] ✅ Answer processed and evaluated`);
+                console.log(`[InterviewOrchestrator] ? Answer processed and evaluated`);
 
                 // Ensure feedback audio has WAV header
                 const wavFeedbackAudio = ensureWavFormat(feedbackAudio.audio, {
@@ -364,6 +449,8 @@ class InterviewOrchestrator {
                     strengths: evaluation.strengths,
                     improvements: evaluation.improvements,
                     followUpSuggested: evaluation.followUpSuggested,
+                    codeVerdict: evaluation.codeVerdict || null,
+                    codeScore: evaluation.codeScore ?? null,
                 };
             } finally {
                 client.release();
@@ -417,7 +504,7 @@ class InterviewOrchestrator {
             // Create evaluation result in Learning OS
             await this._createEvaluationResult(sessionId, summary);
 
-            console.log(`[InterviewOrchestrator] ✅ Session ${sessionId} ended`);
+            console.log(`[InterviewOrchestrator] ? Session ${sessionId} ended`);
 
             return summary;
         } catch (error) {
@@ -578,6 +665,8 @@ class InterviewOrchestrator {
                     turn_number,
                     question_text,
                     question_type,
+                    requires_code_editor,
+                    problem_id,
                     question_difficulty,
                     user_answer_text,
                     score,
@@ -596,6 +685,8 @@ class InterviewOrchestrator {
                 turnNumber: row.turn_number,
                 question: row.question_text,
                 questionType: row.question_type,
+                requiresCodeEditor: row.requires_code_editor,
+                problemId: row.problem_id,
                 difficulty: row.question_difficulty,
                 isAnswered: row.user_answer_text !== null,
                 score: row.score,
@@ -624,7 +715,7 @@ class InterviewOrchestrator {
                 `
                 SELECT 
                     id, turn_number, question_text, question_type,
-                    question_difficulty, user_answer_text, score, verdict, feedback
+                    requires_code_editor, problem_id, question_difficulty, user_answer_text, score, verdict, feedback
                 FROM interview_turns
                 WHERE session_id = $1 AND turn_number = $2
             `,
@@ -636,6 +727,7 @@ class InterviewOrchestrator {
             }
 
             const turn = result.rows[0];
+            const problem = await this._fetchProblemById(client, turn.problem_id);
 
             // Synthesize question audio
             const ttsResult = await tts.synthesize(turn.question_text);
@@ -650,6 +742,9 @@ class InterviewOrchestrator {
                 turnNumber: turn.turn_number,
                 question: turn.question_text,
                 questionType: turn.question_type,
+                requiresCodeEditor: turn.requires_code_editor,
+                problemId: turn.problem_id,
+                problem,
                 difficulty: turn.question_difficulty,
                 audio: wavAudio.toString("base64"),
                 audioDuration: ttsResult.duration,
@@ -700,7 +795,7 @@ class InterviewOrchestrator {
 
             await client.query("COMMIT");
 
-            console.log(`[InterviewOrchestrator] ✅ Successfully deleted session ${sessionId}`);
+            console.log(`[InterviewOrchestrator] ? Successfully deleted session ${sessionId}`);
 
             // Remove from in-memory cache if exists
             this.activeSessions.delete(sessionId);
@@ -720,11 +815,154 @@ class InterviewOrchestrator {
             };
         } catch (error) {
             await client.query("ROLLBACK");
-            console.error(`[InterviewOrchestrator] ❌ Error deleting session:`, error);
+            console.error(`[InterviewOrchestrator] ? Error deleting session:`, error);
             throw error;
         } finally {
             client.release();
         }
+    }
+
+    _isCodingQuestion(generatedQuestion) {
+        const type = (generatedQuestion?.type || "").toLowerCase();
+        if (type === "coding") return true;
+        if (generatedQuestion?.problemSpec) return true;
+        const text = generatedQuestion?.question || "";
+        return this._looksLikeCodingQuestion(text);
+    }
+
+    _looksLikeCodingQuestion(text) {
+        if (!text) return false;
+        const lower = text.toLowerCase();
+        const codingHints = [
+            "write",
+            "implement",
+            "code",
+            "function",
+            "algorithm",
+            "complexity",
+            "o(",
+            "array",
+            "string",
+            "matrix",
+            "graph",
+            "tree",
+            "linked list",
+            "queue",
+            "stack",
+            "hash",
+            "dynamic programming",
+            "dp",
+            "binary search",
+            "sort",
+            "search",
+            "subarray",
+            "substring",
+            "input",
+            "output",
+            "constraints",
+            "mod",
+            "modulo",
+            "grid",
+        ];
+
+        return codingHints.some((hint) => lower.includes(hint));
+    }
+
+    _buildProblemSpec(generatedQuestion, index) {
+        const fallbackTitle = this._buildFallbackTitle(generatedQuestion?.question, index);
+        const spec = generatedQuestion?.problemSpec || {};
+
+        const sample =
+            spec.sample_testcase && typeof spec.sample_testcase === "object"
+                ? spec.sample_testcase
+                : { input: "", output: "" };
+
+        let hidden = Array.isArray(spec.hidden_testcases) ? spec.hidden_testcases.filter(Boolean) : [];
+        if (hidden.length === 0) {
+            hidden = [sample, sample];
+        } else if (hidden.length === 1) {
+            hidden = [hidden[0], sample];
+        }
+
+        return {
+            title: spec.title || fallbackTitle,
+            description: spec.description || generatedQuestion?.question || fallbackTitle,
+            input_format: spec.input_format || "N/A",
+            output_format: spec.output_format || "N/A",
+            constraints: spec.constraints || "N/A",
+            sample_testcase: sample,
+            hidden_testcases: hidden,
+            explaination: spec.explaination || "Self Explainary!",
+            category: Array.isArray(spec.category) && spec.category.length > 0 ? spec.category : ["Array"],
+            prohibited_keys: spec.prohibited_keys || null,
+        };
+    }
+
+    _buildFallbackTitle(questionText, index) {
+        if (!questionText) return `Interview Coding Q${index}`;
+        const trimmed = questionText.replace(/\s+/g, " ").trim();
+        const words = trimmed.split(" ").slice(0, 6).join(" ");
+        return words.length > 0 ? words : `Interview Coding Q${index}`;
+    }
+
+    async _fetchProblemById(client, problemId) {
+        if (!problemId) return null;
+        try {
+            const result = await client.query("SELECT * FROM Problem WHERE id = $1", [problemId]);
+            return result.rows[0] || null;
+        } catch (error) {
+            console.warn("[InterviewOrchestrator] Failed to fetch problem for interview:", error.message);
+            return null;
+        }
+    }
+
+    async _getLatestCodeSubmission(client, turnId, userId) {
+        const result = await client.query(
+            `
+            SELECT id, verdict, created_at
+            FROM interview_code_submissions
+            WHERE turn_id = $1 AND user_id = $2
+            ORDER BY created_at DESC
+            LIMIT 1
+        `,
+            [turnId, userId],
+        );
+
+        return result.rows[0] || null;
+    }
+
+    _scoreFromVerdict(verdict) {
+        const normalized = String(verdict || "").toUpperCase();
+        if (normalized === "ACCEPTED") return 100;
+        if (normalized === "WRONG ANSWER") return 40;
+        if (normalized === "TLE") return 20;
+        if (normalized === "RTE") return 20;
+        if (normalized === "COMPILE ERROR") return 10;
+        return 50;
+    }
+
+    _combineScores(speechScore, codeScore) {
+        const speech = Number.isFinite(speechScore) ? speechScore : 50;
+        const code = Number.isFinite(codeScore) ? codeScore : 50;
+        return Math.round(speech * 0.6 + code * 0.4);
+    }
+
+    _verdictFromScore(score) {
+        if (score >= 90) return "excellent";
+        if (score >= 70) return "good";
+        if (score >= 50) return "average";
+        if (score >= 30) return "poor";
+        return "failed";
+    }
+
+    _feedbackFromVerdict(verdict) {
+        const normalized = String(verdict || "").toUpperCase();
+        if (normalized === "ACCEPTED") return "Your solution passed the tests.";
+        if (normalized === "WRONG ANSWER") return "The output did not match expected results.";
+        if (normalized === "TLE") return "The solution exceeded time limits.";
+        if (normalized === "RTE") return "The code crashed during execution.";
+        if (normalized === "COMPILE ERROR") return "The code did not compile successfully.";
+        return "The code submission could not be fully judged.";
     }
 }
 

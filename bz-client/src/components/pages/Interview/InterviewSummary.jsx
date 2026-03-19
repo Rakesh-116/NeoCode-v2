@@ -17,6 +17,7 @@ import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import Header from "../Header";
 import Footer from "../Footer";
+import ConceptProgressBar from "../../interviews/ConceptProgressBar";
 
 const InterviewSummary = () => {
     const { sessionId } = useParams();
@@ -25,6 +26,7 @@ const InterviewSummary = () => {
     const [session, setSession] = useState(null);
     const [transcript, setTranscript] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [retaking, setRetaking] = useState(false);
 
     const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     const jwtToken = Cookies.get("neo_code_jwt_token");
@@ -52,12 +54,42 @@ const InterviewSummary = () => {
                 headers: { Authorization: `Bearer ${jwtToken}` },
             });
             setTranscript(transcriptResponse.data.transcript);
+
+            await axios.get(`${API_BASE_URL}/api/interview/smart-review/stats`, {
+                headers: { Authorization: `Bearer ${jwtToken}` },
+            });
         } catch (error) {
             console.error("Error fetching summary:", error);
             toast.error("Failed to load interview summary");
             navigate("/interviews");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRetake = async () => {
+        if (!sessionId) return;
+
+        setRetaking(true);
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/api/interview/${sessionId}/retake`,
+                {},
+                { headers: { Authorization: `Bearer ${jwtToken}` } },
+            );
+
+            const newSessionId = response.data?.session?.sessionId;
+            if (!newSessionId) {
+                throw new Error("Retake failed: missing new session id");
+            }
+
+            toast.success("Retake started");
+            navigate(`/interview/room/${newSessionId}`);
+        } catch (error) {
+            console.error("Error retaking interview:", error);
+            toast.error(error.response?.data?.message || error.message || "Failed to retake interview");
+        } finally {
+            setRetaking(false);
         }
     };
 
@@ -110,6 +142,8 @@ const InterviewSummary = () => {
         const duration = Math.round((new Date(session.ended_at) - new Date(session.started_at)) / 60000);
         return `${duration} min`;
     };
+
+    const conceptUpdates = session?.session_metadata?.conceptUpdates || [];
 
     if (loading) {
         return (
@@ -204,11 +238,12 @@ const InterviewSummary = () => {
                         Download Transcript
                     </button>
                     <button
-                        onClick={() => navigate(`/interview/setup?type=${session.session_mode}`)}
-                        className="flex items-center gap-2 px-6 py-3 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-all"
+                        onClick={handleRetake}
+                        disabled={retaking}
+                        className="flex items-center gap-2 px-6 py-3 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-all disabled:opacity-50"
                     >
                         <FaRedo />
-                        Retake Interview
+                        {retaking ? "Starting Retake..." : "Retake Interview"}
                     </button>
                     <button
                         onClick={() => navigate("/interviews")}
@@ -218,6 +253,8 @@ const InterviewSummary = () => {
                         Back to Interviews
                     </button>
                 </div>
+
+                <ConceptProgressBar conceptUpdates={conceptUpdates} />
 
                 {/* Per-Question Breakdown */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>

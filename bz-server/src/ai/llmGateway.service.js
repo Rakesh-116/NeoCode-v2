@@ -176,7 +176,12 @@ class LLMGateway {
      * Validate purpose
      */
     isValidPurpose(purpose) {
-        return ["coach", "interview", "codeReview", "support"].includes(purpose);
+        return [
+            "coach",
+            "interview",
+            "codeReview",
+            "support",
+        ].includes(purpose);
     }
 
     /**

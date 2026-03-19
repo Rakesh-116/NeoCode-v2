@@ -18,6 +18,7 @@ import Header from "../Header";
 import Footer from "../Footer";
 import AudioPlayer from "./AudioPlayer";
 import AudioRecorder from "./AudioRecorder";
+import InterviewCodingWorkspace from "./InterviewCodingWorkspace";
 
 const InterviewRoom = () => {
     const { sessionId } = useParams();
@@ -37,6 +38,46 @@ const InterviewRoom = () => {
 
     const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     const jwtToken = Cookies.get("neo_code_jwt_token");
+
+    const looksLikeCodingQuestion = (text) => {
+        if (!text) return false;
+        const lower = text.toLowerCase();
+        const hints = [
+            "write",
+            "implement",
+            "code",
+            "algorithm",
+            "complexity",
+            "o(",
+            "array",
+            "string",
+            "matrix",
+            "graph",
+            "tree",
+            "linked list",
+            "stack",
+            "queue",
+            "hash",
+            "dynamic programming",
+            "dp",
+            "binary search",
+            "sort",
+            "search",
+            "input",
+            "output",
+            "constraints",
+            "subarray",
+            "substring",
+            "grid",
+        ];
+        return hints.some((hint) => lower.includes(hint));
+    };
+
+    const isCodingQuestion =
+        Boolean(currentQuestion?.requiresCodeEditor) ||
+        Boolean(currentQuestion?.problemId || currentQuestion?.problem) ||
+        (currentQuestion?.questionType || "").toLowerCase() === "coding" ||
+        looksLikeCodingQuestion(currentQuestion?.question);
 
     useEffect(() => {
         if (!jwtToken) {
@@ -288,7 +329,7 @@ const InterviewRoom = () => {
         <div className="min-h-screen bg-black text-white">
             <Header />
 
-            <div className="container mx-auto px-6 py-12 pt-28 max-w-5xl">
+            <div className="mx-auto w-full px-6 py-12 pt-28 max-w-[1600px]">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <button
@@ -399,24 +440,32 @@ const InterviewRoom = () => {
                 {/* Question Display */}
                 {!loading && currentQuestion && (
                     <div className="space-y-8">
-                        {/* Question Card */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white/5 border border-white/10 rounded-lg p-8"
-                        >
-                            <div className="mb-6">
-                                <div className="text-sm text-white/60 mb-2">Question {currentTurnNumber}</div>
-                                <h3 className="text-2xl font-bold mb-4">{currentQuestion.question}</h3>
-                            </div>
+                        {isCodingQuestion ? (
+                            <InterviewCodingWorkspace
+                                sessionId={sessionId}
+                                turnNumber={currentTurnNumber}
+                                question={currentQuestion}
+                            />
+                        ) : (
+                            /* Question Card */
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-white/5 border border-white/10 rounded-lg p-8"
+                            >
+                                <div className="mb-6">
+                                    <div className="text-sm text-white/60 mb-2">Question {currentTurnNumber}</div>
+                                    <h3 className="text-2xl font-bold mb-4">{currentQuestion.question}</h3>
+                                </div>
 
-                            {/* Audio Player */}
-                            {currentQuestion.audio && (
-                                <AudioPlayer audioBase64={currentQuestion.audio} label="Question Audio" />
-                            )}
-                        </motion.div>
+                                {/* Audio Player */}
+                                {currentQuestion.audio && (
+                                    <AudioPlayer audioBase64={currentQuestion.audio} label="Question Audio" />
+                                )}
+                            </motion.div>
+                        )}
 
-                        {/* Answer Section */}
+                        {/* Answer Section (voice) */}
                         {!evaluation && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -424,6 +473,11 @@ const InterviewRoom = () => {
                                 transition={{ delay: 0.2 }}
                             >
                                 <h4 className="text-xl font-semibold mb-4">Your Answer</h4>
+                                {isCodingQuestion && (
+                                    <p className="text-white/60 mb-3">
+                                        Submit your code first, then record a short explanation of your approach.
+                                    </p>
+                                )}
                                 <AudioRecorder onSubmit={handleSubmitAnswer} disabled={submitting} />
                                 {submitting && (
                                     <div className="text-center mt-4 text-white/60">
@@ -474,6 +528,16 @@ const InterviewRoom = () => {
                                                 <div className="text-sm text-white/60 mb-2">AI Feedback</div>
                                                 <div className="bg-white/10 border border-white/20 rounded-lg p-4">
                                                     {evaluation.feedback}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Code Verdict */}
+                                        {evaluation.codeVerdict && (
+                                            <div className="mb-6">
+                                                <div className="text-sm text-white/60 mb-2">Code Verdict</div>
+                                                <div className="bg-white/10 border border-white/20 rounded-lg p-4">
+                                                    {evaluation.codeVerdict}
                                                 </div>
                                             </div>
                                         )}

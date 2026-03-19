@@ -32,7 +32,7 @@ const createUser = async (req, res) => {
 
         const user = await pool.query(userInsertQuery, userDetails);
 
-        const token = jwt.sign({ userId: user.rows[0].id }, config.JWT_SECRET_KEY, { expiresIn: "4h" });
+        const token = jwt.sign({ userId: user.rows[0].id }, config.JWT_SECRET_KEY, { expiresIn: "7d" });
 
         // console.log(user.rows[0]);
 
@@ -75,7 +75,7 @@ const loginUser = async (req, res) => {
         const comparePassword = await bcrypt.compare(password, userCheck.rows[0].password);
 
         if (comparePassword) {
-            const token = jwt.sign({ userId: userCheck.rows[0].id }, config.JWT_SECRET_KEY, { expiresIn: "4h" });
+            const token = jwt.sign({ userId: userCheck.rows[0].id }, config.JWT_SECRET_KEY, { expiresIn: "7d" });
 
             // console.log(userCheck.rows[0]);
 
