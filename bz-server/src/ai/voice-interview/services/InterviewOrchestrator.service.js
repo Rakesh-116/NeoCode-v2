@@ -23,6 +23,88 @@ class InterviewOrchestrator {
     constructor() {
         this.activeSessions = new Map(); // In-memory session cache
     }
+    _parseQuestionPayload(rawText) {
+        if (!rawText || typeof rawText !== "string") {
+            return { parsed: null, questionText: rawText };
+        }
+
+        const trimmed = rawText.trim();
+        if (!trimmed.startsWith("{") || !trimmed.includes('"question"')) {
+            return { parsed: null, questionText: rawText };
+        }
+
+        const tryParseJson = (text) => {
+            let candidate = String(text || "").trim();
+            const firstBrace = candidate.indexOf("{");
+            const lastBrace = candidate.lastIndexOf("}");
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                candidate = candidate.slice(firstBrace, lastBrace + 1);
+            }
+            candidate = candidate.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+
+            let out = "";
+            let inString = false;
+            let escaped = false;
+            for (let i = 0; i < candidate.length; i += 1) {
+                const ch = candidate[i];
+                if (escaped) {
+                    out += ch;
+                    escaped = false;
+                    continue;
+                }
+                if (ch === "\\") {
+                    out += ch;
+                    escaped = true;
+                    continue;
+                }
+                if (ch === '"') {
+                    out += ch;
+                    inString = !inString;
+                    continue;
+                }
+                if (!inString && (ch === "{" || ch === ",")) {
+                    out += ch;
+                    let j = i + 1;
+                    while (j < candidate.length && /\s/.test(candidate[j])) {
+                        out += candidate[j];
+                        j += 1;
+                    }
+                    if (candidate[j] === '"') {
+                        i = j - 1;
+                        continue;
+                    }
+                    const keyStart = j;
+                    while (j < candidate.length && /[A-Za-z0-9_]/.test(candidate[j])) {
+                        j += 1;
+                    }
+                    const key = candidate.slice(keyStart, j);
+                    if (key.length > 0) {
+                        let k = j;
+                        while (k < candidate.length && /\s/.test(candidate[k])) {
+                            k += 1;
+                        }
+                        if (candidate[k] === ":") {
+                            out += `"${key}"`;
+                            i = j - 1;
+                            continue;
+                        }
+                    }
+                }
+                out += ch;
+            }
+
+            out = out.replace(/,\s*([}\]])/g, "$1").trim();
+            return JSON.parse(out);
+        };
+
+        try {
+            const parsed = tryParseJson(trimmed);
+            const questionText = typeof parsed?.question === "string" ? parsed.question : rawText;
+            return { parsed, questionText };
+        } catch (error) {
+            return { parsed: null, questionText: rawText };
+        }
+    }
 
     /**
      * Start a new interview session
@@ -141,9 +223,93 @@ class InterviewOrchestrator {
                     console.log(`[InterviewOrchestrator] Generating question ${i}/${validatedTargetQuestions}...`);
 
                     const generatedQuestion = await llmProvider.generateQuestion(context);
+                    if (!generatedQuestion?.problemSpec && typeof generatedQuestion?.question === "string") {
+                        const trimmed = generatedQuestion.question.trim();
+                        if (trimmed.startsWith("{") && trimmed.includes("\"problemSpec\"")) {
+                            const repaired = this._parseQuestionPayload(trimmed);
+                            const parsed = repaired.parsed || null;
+                            if (parsed) {
+                                if (parsed.question) generatedQuestion.question = parsed.question;
+                                if (parsed.problemSpec) generatedQuestion.problemSpec = parsed.problemSpec;
+                                if (parsed.type) generatedQuestion.type = parsed.type;
+                                if (parsed.difficulty) generatedQuestion.difficulty = parsed.difficulty;
+                                if (parsed.expectedKeywords) generatedQuestion.expectedKeywords = parsed.expectedKeywords;
+                                if (parsed.follow_ups || parsed.followUps) {
+                                    generatedQuestion.followUps = parsed.follow_ups || parsed.followUps;
+                                }
+                                if (parsed.evaluation_criteria || parsed.evaluationCriteria) {
+                                    generatedQuestion.evaluationCriteria =
+                                        parsed.evaluation_criteria || parsed.evaluationCriteria;
+                                }
+                                if (parsed.concept_tags || parsed.conceptTags) {
+                                    generatedQuestion.conceptTags = parsed.concept_tags || parsed.conceptTags;
+                                }
+                                if (parsed.topic) generatedQuestion.topic = parsed.topic;
+                            }
+                        }
+                    }
+                    if (!generatedQuestion?.problemSpec && typeof generatedQuestion?.question === "string") {
+                        const trimmed = generatedQuestion.question.trim();
+                        if (trimmed.startsWith("{") && trimmed.includes('"problemSpec"')) {
+                            try {
+                                const parsed = JSON.parse(trimmed);
+                                if (parsed && parsed.question) {
+                                    generatedQuestion.question = parsed.question;
+                                }
+                                if (parsed && parsed.problemSpec) {
+                                    generatedQuestion.problemSpec = parsed.problemSpec;
+                                }
+                                if (parsed && parsed.type) {
+                                    generatedQuestion.type = parsed.type;
+                                }
+                                if (parsed && parsed.difficulty) {
+                                    generatedQuestion.difficulty = parsed.difficulty;
+                                }
+                                if (parsed && parsed.expectedKeywords) {
+                                    generatedQuestion.expectedKeywords = parsed.expectedKeywords;
+                                }
+                                if (parsed && (parsed.follow_ups || parsed.followUps)) {
+                                    generatedQuestion.followUps =
+                                        parsed.follow_ups || parsed.followUps || generatedQuestion.followUps;
+                                }
+                                if (parsed && (parsed.evaluation_criteria || parsed.evaluationCriteria)) {
+                                    generatedQuestion.evaluationCriteria =
+                                        parsed.evaluation_criteria || parsed.evaluationCriteria;
+                                }
+                                if (parsed && (parsed.concept_tags || parsed.conceptTags)) {
+                                    generatedQuestion.conceptTags =
+                                        parsed.concept_tags || parsed.conceptTags;
+                                }
+                                if (parsed && parsed.topic) {
+                                    generatedQuestion.topic = parsed.topic;
+                                }
+                            } catch (error) {
+                                console.warn(
+                                    "[InterviewOrchestrator] Failed to recover JSON question payload:",
+                                    error.message,
+                                );
+                            }
+                        }
+                    }
                     const isCoding = this._isCodingQuestion(generatedQuestion);
                     const questionType = isCoding ? "coding" : generatedQuestion.type || "general";
                     const normalizedDifficulty = (generatedQuestion.difficulty || difficulty || "medium").toLowerCase();
+                    const conceptTags = Array.isArray(generatedQuestion.conceptTags)
+                        ? generatedQuestion.conceptTags.filter(Boolean)
+                        : [];
+                    const evaluationCriteria = generatedQuestion.evaluationCriteria
+                        ? String(generatedQuestion.evaluationCriteria)
+                        : null;
+                    const questionMetadata = {
+                        questionFormatVersion: 1,
+                        topic: generatedQuestion.topic || topic || targetRole || null,
+                        followUps: Array.isArray(generatedQuestion.followUps) ? generatedQuestion.followUps : [],
+                        evaluationCriteria,
+                        expectedKeywords: Array.isArray(generatedQuestion.expectedKeywords)
+                            ? generatedQuestion.expectedKeywords
+                            : [],
+                        conceptTags,
+                    };
 
                     let problemId = null;
                     if (isCoding) {
@@ -192,9 +358,10 @@ class InterviewOrchestrator {
                     await client.query(
                         `INSERT INTO interview_turns (
                             session_id, turn_number, question_text,
-                            question_type, question_difficulty, requires_code_editor, problem_id, question_generated_at
+                            question_type, question_difficulty, requires_code_editor, problem_id,
+                            concept_tags, validation_criteria, llm_metadata, question_generated_at
                         )
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, NOW())`,
                         [
                             sessionId,
                             i,
@@ -203,6 +370,13 @@ class InterviewOrchestrator {
                             normalizedDifficulty,
                             isCoding,
                             problemId,
+                            JSON.stringify(conceptTags),
+                            JSON.stringify(
+                                evaluationCriteria
+                                    ? { evaluation_criteria: evaluationCriteria }
+                                    : {},
+                            ),
+                            JSON.stringify(questionMetadata),
                         ],
                     );
 
@@ -257,7 +431,8 @@ class InterviewOrchestrator {
             // Find the next unanswered question
             const turnResult = await client.query(
                 `
-                SELECT id, turn_number, question_text, question_type, question_difficulty, requires_code_editor, problem_id
+                SELECT id, turn_number, question_text, question_type, question_difficulty, requires_code_editor, problem_id,
+                       concept_tags, validation_criteria, llm_metadata
                 FROM interview_turns
                 WHERE session_id = $1 AND user_answer_text IS NULL
                 ORDER BY turn_number ASC
@@ -275,12 +450,38 @@ class InterviewOrchestrator {
             }
 
             const turn = turnResult.rows[0];
+            const parsedPayload = this._parseQuestionPayload(turn.question_text);
             const problem = await this._fetchProblemById(client, turn.problem_id);
+            const parsedSpec = parsedPayload.parsed?.problemSpec || null;
+            const parsedMeta = parsedPayload.parsed
+                ? {
+                      topic: parsedPayload.parsed.topic || null,
+                      followUps:
+                          parsedPayload.parsed.follow_ups ||
+                          parsedPayload.parsed.followUps ||
+                          [],
+                      conceptTags:
+                          parsedPayload.parsed.concept_tags ||
+                          parsedPayload.parsed.conceptTags ||
+                          [],
+                      expectedKeywords: parsedPayload.parsed.expectedKeywords || [],
+                      evaluationCriteria:
+                          parsedPayload.parsed.evaluation_criteria ||
+                          parsedPayload.parsed.evaluationCriteria ||
+                          null,
+                      questionFormatVersion: 1,
+                  }
+                : null;
+            const questionText = parsedPayload.questionText || turn.question_text;
 
             console.log(`[InterviewOrchestrator] ? Returning question ${turn.turn_number}`);
 
-            // Synthesize the question to audio
-            const ttsResult = await tts.synthesize(turn.question_text);
+            // Synthesize the question to audio (use description for coding questions)
+            const ttsText =
+                parsedSpec && turn.question_type === "coding"
+                    ? parsedSpec.description || questionText
+                    : questionText;
+            const ttsResult = await tts.synthesize(ttsText);
 
             // Ensure audio has WAV header (fix for Piper raw PCM output)
             const wavAudio = ensureWavFormat(ttsResult.audio, {
@@ -289,14 +490,23 @@ class InterviewOrchestrator {
                 bitsPerSample: 16,
             });
 
+            const mergedMeta = this._mergeQuestionMeta(turn.llm_metadata, parsedMeta);
+
             return {
                 turnId: turn.id,
                 turnNumber: turn.turn_number,
-                question: turn.question_text,
+                question: questionText,
                 questionType: turn.question_type,
                 requiresCodeEditor: turn.requires_code_editor,
                 problemId: turn.problem_id,
-                problem,
+                problem: parsedSpec ? this._buildProblemFromSpec(parsedSpec, problem) : problem,
+                questionMeta: mergedMeta,
+                conceptTags: (turn.concept_tags && turn.concept_tags.length > 0)
+                    ? turn.concept_tags
+                    : (mergedMeta?.conceptTags || []),
+                validationCriteria: turn.validation_criteria && Object.keys(turn.validation_criteria).length > 0
+                    ? turn.validation_criteria
+                    : (mergedMeta?.evaluationCriteria ? { evaluation_criteria: mergedMeta.evaluationCriteria } : {}),
                 audio: wavAudio.toString("base64"), // Base64 encoded WAV audio
                 audioDuration: ttsResult.duration,
                 expectedKeywords: null,
@@ -335,7 +545,7 @@ class InterviewOrchestrator {
 
             try {
                 const turnResult = await client.query(
-                    "SELECT question_text, question_difficulty, requires_code_editor, question_type FROM interview_turns WHERE id = $1",
+                    "SELECT question_text, question_difficulty, requires_code_editor, question_type, validation_criteria, llm_metadata FROM interview_turns WHERE id = $1",
                     [turnId],
                 );
 
@@ -343,9 +553,20 @@ class InterviewOrchestrator {
                     throw new Error("Turn not found");
                 }
 
-                const { question_text, question_difficulty, requires_code_editor, question_type } = turnResult.rows[0];
+                const {
+                    question_text,
+                    question_difficulty,
+                    requires_code_editor,
+                    question_type,
+                    validation_criteria,
+                    llm_metadata,
+                } = turnResult.rows[0];
                 const isCodingTurn =
                     Boolean(requires_code_editor) || String(question_type || "").toLowerCase() === "coding";
+                const evaluationCriteria =
+                    (validation_criteria && validation_criteria.evaluation_criteria) ||
+                    (llm_metadata && llm_metadata.evaluationCriteria) ||
+                    null;
 
                 let latestCodeSubmission = null;
                 if (isCodingTurn) {
@@ -363,6 +584,7 @@ class InterviewOrchestrator {
                     answer: answerText,
                     topic: session.topic || session.target_role,
                     difficulty: question_difficulty,
+                    evaluationCriteria,
                 });
 
                 if (isCodingTurn && latestCodeSubmission) {
@@ -668,6 +890,9 @@ class InterviewOrchestrator {
                     requires_code_editor,
                     problem_id,
                     question_difficulty,
+                    concept_tags,
+                    validation_criteria,
+                    llm_metadata,
                     user_answer_text,
                     score,
                     verdict,
@@ -681,9 +906,9 @@ class InterviewOrchestrator {
             );
 
             return result.rows.map((row) => ({
+                ...this._normalizeQuestionRow(row),
                 turnId: row.turn_id,
                 turnNumber: row.turn_number,
-                question: row.question_text,
                 questionType: row.question_type,
                 requiresCodeEditor: row.requires_code_editor,
                 problemId: row.problem_id,
@@ -705,17 +930,19 @@ class InterviewOrchestrator {
      * @param {number} turnNumber - Turn number
      * @returns {Promise<Object>} Question with audio
      */
-    async getQuestionByTurn(sessionId, turnNumber) {
+    async getQuestionByTurn(sessionId, turnNumber, options = {}) {
         const client = await pool.connect();
         try {
             const session = await this._getSession(sessionId);
             const { tts } = session.providers;
+            const includeAudio = options.includeAudio !== false;
 
             const result = await client.query(
                 `
                 SELECT 
                     id, turn_number, question_text, question_type,
-                    requires_code_editor, problem_id, question_difficulty, user_answer_text, score, verdict, feedback
+                    requires_code_editor, problem_id, question_difficulty, user_answer_text, score, verdict, feedback,
+                    concept_tags, validation_criteria, llm_metadata
                 FROM interview_turns
                 WHERE session_id = $1 AND turn_number = $2
             `,
@@ -727,27 +954,105 @@ class InterviewOrchestrator {
             }
 
             const turn = result.rows[0];
+            const parsedPayload = this._parseQuestionPayload(turn.question_text);
+            const questionText = parsedPayload.questionText || turn.question_text;
             const problem = await this._fetchProblemById(client, turn.problem_id);
+            const parsedSpec = parsedPayload.parsed?.problemSpec || null;
+            const parsedMeta = parsedPayload.parsed
+                ? {
+                      topic: parsedPayload.parsed.topic || null,
+                      followUps:
+                          parsedPayload.parsed.follow_ups ||
+                          parsedPayload.parsed.followUps ||
+                          [],
+                      conceptTags:
+                          parsedPayload.parsed.concept_tags ||
+                          parsedPayload.parsed.conceptTags ||
+                          [],
+                      expectedKeywords: parsedPayload.parsed.expectedKeywords || [],
+                      evaluationCriteria:
+                          parsedPayload.parsed.evaluation_criteria ||
+                          parsedPayload.parsed.evaluationCriteria ||
+                          null,
+                      questionFormatVersion: 1,
+                  }
+                : null;
 
-            // Synthesize question audio
-            const ttsResult = await tts.synthesize(turn.question_text);
-            const wavAudio = ensureWavFormat(ttsResult.audio, {
-                sampleRate: 22050,
-                channels: 1,
-                bitsPerSample: 16,
-            });
+            if (parsedSpec && problem) {
+                const shouldPatchProblem =
+                    String(problem.title || "").trim().startsWith("{") ||
+                    String(problem.description || "").trim().startsWith("{") ||
+                    String(problem.input_format || "").trim().toUpperCase() === "N/A" ||
+                    String(problem.output_format || "").trim().toUpperCase() === "N/A";
+                if (shouldPatchProblem) {
+                    const patched = this._buildProblemFromSpec(parsedSpec, problem);
+                    await client.query(
+                        `
+                        UPDATE problem
+                        SET title = $1,
+                            description = $2,
+                            input_format = $3,
+                            output_format = $4,
+                            constraints = $5,
+                            sample_testcase = $6,
+                            explaination = $7,
+                            category = $8,
+                            prohibited_keys = $9,
+                            updated_at = NOW()
+                        WHERE id = $10
+                    `,
+                        [
+                            patched.title,
+                            patched.description,
+                            patched.input_format,
+                            patched.output_format,
+                            patched.constraints,
+                            patched.sample_testcase,
+                            patched.explaination,
+                            patched.category,
+                            patched.prohibited_keys,
+                            problem.id,
+                        ],
+                    );
+                }
+            }
+
+            let wavAudio = null;
+            let audioDuration = null;
+            if (includeAudio) {
+                const ttsText =
+                    parsedSpec && turn.question_type === "coding"
+                        ? parsedSpec.description || questionText
+                        : questionText;
+                const ttsResult = await tts.synthesize(ttsText);
+                wavAudio = ensureWavFormat(ttsResult.audio, {
+                    sampleRate: 22050,
+                    channels: 1,
+                    bitsPerSample: 16,
+                });
+                audioDuration = ttsResult.duration;
+            }
+
+            const mergedMeta = this._mergeQuestionMeta(turn.llm_metadata, parsedMeta);
 
             return {
                 turnId: turn.id,
                 turnNumber: turn.turn_number,
-                question: turn.question_text,
+                question: questionText,
                 questionType: turn.question_type,
                 requiresCodeEditor: turn.requires_code_editor,
                 problemId: turn.problem_id,
-                problem,
+                problem: parsedSpec ? this._buildProblemFromSpec(parsedSpec, problem) : problem,
                 difficulty: turn.question_difficulty,
-                audio: wavAudio.toString("base64"),
-                audioDuration: ttsResult.duration,
+                questionMeta: mergedMeta,
+                conceptTags: (turn.concept_tags && turn.concept_tags.length > 0)
+                    ? turn.concept_tags
+                    : (mergedMeta?.conceptTags || []),
+                validationCriteria: turn.validation_criteria && Object.keys(turn.validation_criteria).length > 0
+                    ? turn.validation_criteria
+                    : (mergedMeta?.evaluationCriteria ? { evaluation_criteria: mergedMeta.evaluationCriteria } : {}),
+                audio: wavAudio ? wavAudio.toString("base64") : null,
+                audioDuration,
                 isAnswered: turn.user_answer_text !== null,
                 score: turn.score,
                 verdict: turn.verdict,
@@ -872,12 +1177,30 @@ class InterviewOrchestrator {
         const fallbackTitle = this._buildFallbackTitle(generatedQuestion?.question, index);
         const spec = generatedQuestion?.problemSpec || {};
 
-        const sample =
-            spec.sample_testcase && typeof spec.sample_testcase === "object"
-                ? spec.sample_testcase
-                : { input: "", output: "" };
+        const normalizeValue = (value) => {
+            if (value === null || value === undefined) return "";
+            if (typeof value === "string") return value;
+            try {
+                return JSON.stringify(value);
+            } catch (error) {
+                return String(value);
+            }
+        };
+
+        const normalizeTestcase = (testcase) => {
+            if (!testcase || typeof testcase !== "object") {
+                return { input: "", output: "" };
+            }
+            return {
+                input: normalizeValue(testcase.input),
+                output: normalizeValue(testcase.output),
+            };
+        };
+
+        const sample = normalizeTestcase(spec.sample_testcase);
 
         let hidden = Array.isArray(spec.hidden_testcases) ? spec.hidden_testcases.filter(Boolean) : [];
+        hidden = hidden.map((testcase) => normalizeTestcase(testcase));
         if (hidden.length === 0) {
             hidden = [sample, sample];
         } else if (hidden.length === 1) {
@@ -895,6 +1218,99 @@ class InterviewOrchestrator {
             explaination: spec.explaination || "Self Explainary!",
             category: Array.isArray(spec.category) && spec.category.length > 0 ? spec.category : ["Array"],
             prohibited_keys: spec.prohibited_keys || null,
+        };
+    }
+
+    _buildProblemFromSpec(spec, fallbackProblem) {
+        const normalizeValue = (value) => {
+            if (value === null || value === undefined) return "";
+            if (typeof value === "string") return value;
+            try {
+                return JSON.stringify(value);
+            } catch (error) {
+                return String(value);
+            }
+        };
+
+        const sample =
+            spec?.sample_testcase && typeof spec.sample_testcase === "object"
+                ? {
+                      input: normalizeValue(spec.sample_testcase.input),
+                      output: normalizeValue(spec.sample_testcase.output),
+                  }
+                : { input: "", output: "" };
+
+        return {
+            ...(fallbackProblem || {}),
+            title: spec.title || fallbackProblem?.title || "Interview Coding Question",
+            description: spec.description || fallbackProblem?.description || "",
+            input_format: spec.input_format || fallbackProblem?.input_format || "N/A",
+            output_format: spec.output_format || fallbackProblem?.output_format || "N/A",
+            constraints: spec.constraints || fallbackProblem?.constraints || "N/A",
+            sample_testcase: sample,
+            explaination: spec.explaination || fallbackProblem?.explaination || "Self Explainary!",
+            category: Array.isArray(spec.category) ? spec.category : fallbackProblem?.category || [],
+            prohibited_keys: spec.prohibited_keys || fallbackProblem?.prohibited_keys || null,
+        };
+    }
+
+    _mergeQuestionMeta(dbMeta, parsedMeta) {
+        if (!parsedMeta) return dbMeta || null;
+        if (!dbMeta || Object.keys(dbMeta).length === 0) return parsedMeta;
+
+        return {
+            ...parsedMeta,
+            ...dbMeta,
+            topic: dbMeta.topic || parsedMeta.topic || null,
+            evaluationCriteria: dbMeta.evaluationCriteria || parsedMeta.evaluationCriteria || null,
+            followUps:
+                Array.isArray(dbMeta.followUps) && dbMeta.followUps.length > 0
+                    ? dbMeta.followUps
+                    : parsedMeta.followUps || [],
+            conceptTags:
+                Array.isArray(dbMeta.conceptTags) && dbMeta.conceptTags.length > 0
+                    ? dbMeta.conceptTags
+                    : parsedMeta.conceptTags || [],
+            expectedKeywords:
+                Array.isArray(dbMeta.expectedKeywords) && dbMeta.expectedKeywords.length > 0
+                    ? dbMeta.expectedKeywords
+                    : parsedMeta.expectedKeywords || [],
+            questionFormatVersion: dbMeta.questionFormatVersion || parsedMeta.questionFormatVersion || 1,
+        };
+    }
+
+    _normalizeQuestionRow(row) {
+        const parsedPayload = this._parseQuestionPayload(row.question_text);
+        const parsedMeta = parsedPayload.parsed
+            ? {
+                  topic: parsedPayload.parsed.topic || null,
+                  followUps:
+                      parsedPayload.parsed.follow_ups ||
+                      parsedPayload.parsed.followUps ||
+                      [],
+                  conceptTags:
+                      parsedPayload.parsed.concept_tags ||
+                      parsedPayload.parsed.conceptTags ||
+                      [],
+                  expectedKeywords: parsedPayload.parsed.expectedKeywords || [],
+                  evaluationCriteria:
+                      parsedPayload.parsed.evaluation_criteria ||
+                      parsedPayload.parsed.evaluationCriteria ||
+                      null,
+                  questionFormatVersion: 1,
+              }
+            : null;
+        const mergedMeta = this._mergeQuestionMeta(row.llm_metadata, parsedMeta);
+
+        return {
+            question: parsedPayload.questionText || row.question_text,
+            questionMeta: mergedMeta,
+            conceptTags: (row.concept_tags && row.concept_tags.length > 0)
+                ? row.concept_tags
+                : (mergedMeta?.conceptTags || []),
+            validationCriteria: row.validation_criteria && Object.keys(row.validation_criteria).length > 0
+                ? row.validation_criteria
+                : (mergedMeta?.evaluationCriteria ? { evaluation_criteria: mergedMeta.evaluationCriteria } : {}),
         };
     }
 
@@ -969,3 +1385,4 @@ class InterviewOrchestrator {
 // Export singleton instance
 const interviewOrchestrator = new InterviewOrchestrator();
 export default interviewOrchestrator;
+

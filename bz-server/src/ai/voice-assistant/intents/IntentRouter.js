@@ -6,6 +6,8 @@
  * 
  * Supports intents:
  * - start_interview: Start technical interview practice
+ * - open_interviews: Navigate to interview home/setup
+ * - open_external: Open external sites like YouTube
  * - explain_concept: Get explanation of a topic
  * - show_dashboard: Navigate to dashboard
  * - open_course: Open specific course
@@ -31,6 +33,27 @@ class IntentRouter {
                     /mock\s+interview/i,
                 ],
                 priority: 9,
+            },
+            open_interviews: {
+                keywords: ["interview", "interviews", "interview page", "interview setup"],
+                patterns: [
+                    /open\s+(the\s+)?interviews?\b/i,
+                    /go\s+to\s+interviews?\b/i,
+                    /show\s+interviews?\b/i,
+                    /interview\s+page\b/i,
+                    /interview\s+setup\b/i,
+                ],
+                priority: 7,
+            },
+            open_external: {
+                keywords: ["open", "launch", "youtube", "you tube", "yt"],
+                patterns: [
+                    /open\s+youtube\b/i,
+                    /open\s+you\s*tube\b/i,
+                    /go\s+to\s+youtube\b/i,
+                    /launch\s+youtube\b/i,
+                ],
+                priority: 8,
             },
             explain_concept: {
                 keywords: ["explain", "what is", "tell me about", "how does", "define"],
@@ -120,7 +143,7 @@ class IntentRouter {
      * @returns {Promise<Object>} Intent object with action and parameters
      */
     async parseIntent(userSpeech, context = {}) {
-        const text = userSpeech.toLowerCase().trim();
+        const text = this._normalizeText(userSpeech).toLowerCase().trim();
 
         console.log(`[IntentRouter] Parsing: "${text}"`);
 
@@ -137,8 +160,22 @@ class IntentRouter {
             }
         }
 
-        // If no pattern matches strongly, classify as unknown
+        // If no pattern matches strongly, try a generic "open <site>" fallback
         if (highestScore < 3) {
+            const openMatch = text.match(/^(open|launch|go\s+to)\s+(.+)/i);
+            if (openMatch) {
+                const target = openMatch[2]?.trim();
+                if (target && !text.includes("course") && !text.includes("interview") && !text.includes("dashboard")) {
+                    return {
+                        intent: "open_external",
+                        confidence: 0.4,
+                        text: userSpeech,
+                        entities: { target },
+                        context,
+                    };
+                }
+            }
+
             return {
                 intent: "unknown",
                 confidence: 0,
@@ -159,6 +196,20 @@ class IntentRouter {
             entities,
             context,
         };
+    }
+
+    /**
+     * Normalize common STT quirks to improve intent matching
+     * @private
+     */
+    _normalizeText(text) {
+        if (!text) return "";
+
+        return text
+            .replace(/\bin the view\b/gi, "interview")
+            .replace(/\binter view\b/gi, "interview")
+            .replace(/\binter-view\b/gi, "interview")
+            .replace(/\byou\s*tube\b/gi, "youtube");
     }
 
     /**
@@ -200,6 +251,10 @@ class IntentRouter {
                 entities.difficulty = this._extractDifficulty(text);
                 break;
 
+            case "open_external":
+                entities.target = this._extractExternalTarget(text);
+                break;
+
             case "explain_concept":
                 // Extract concept name
                 const conceptMatch = text.match(/explain\s+(.+)/) || text.match(/what\s+is\s+(.+)/) || text.match(/tell\s+me\s+about\s+(.+)/);
@@ -238,6 +293,28 @@ class IntentRouter {
         }
 
         return entities;
+    }
+
+    /**
+     * Extract external target from text
+     * @private
+     */
+    _extractExternalTarget(text) {
+        if (text.includes("youtube") || text.includes("yt")) return "youtube";
+        if (text.includes("google")) return "google";
+        if (text.includes("github")) return "github";
+        if (text.includes("leetcode")) return "leetcode";
+        if (text.includes("stack overflow") || text.includes("stackoverflow")) return "stackoverflow";
+        if (text.includes("reddit")) return "reddit";
+        if (text.includes("linkedin")) return "linkedin";
+        if (text.includes("twitter") || text.includes("x.com") || text.includes("x ")) return "x";
+
+        const openMatch = text.match(/^(open|launch|go\s+to)\s+(.+)/i);
+        if (openMatch) {
+            return openMatch[2]?.trim() || null;
+        }
+
+        return null;
     }
 
     /**

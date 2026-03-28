@@ -32,18 +32,31 @@ class VoiceAssistantService {
      * @param {Object} context - Current context (page, problem, course, etc.)
      * @returns {Promise<Object>} Response with audio buffer and metadata
      */
-    async processVoiceCommand(audioBuffer, userId, context = {}) {
+    async processVoiceCommand(audioBuffer, userId, context = {}, clientTranscript = "") {
         const sessionId = uuidv4();
         
         console.log(`[VoiceAssistant] Processing command for user ${userId}`);
 
         try {
-            // Step 1: Speech-to-Text
-            const transcription = await this._transcribeAudio(audioBuffer);
-            console.log(`[VoiceAssistant] Transcribed: "${transcription.text}"`);
+            const normalizedClient = typeof clientTranscript === "string" ? clientTranscript.trim() : "";
+            let finalText = "";
+
+            // Step 1: Use browser transcript first; fallback to Whisper if missing
+            if (normalizedClient) {
+                console.log("[VoiceAssistant] Using client transcript");
+                finalText = normalizedClient;
+            } else {
+                if (!audioBuffer) {
+                    throw new Error("No audio provided for transcription");
+                }
+                const transcription = await this._transcribeAudio(audioBuffer);
+                finalText = transcription.text;
+            }
+
+            console.log(`[VoiceAssistant] Transcribed: "${finalText}"`);
 
             // Step 2: Parse Intent
-            const intent = await intentRouter.parseIntent(transcription.text, context);
+            const intent = await intentRouter.parseIntent(finalText, context);
             console.log(`[VoiceAssistant] Intent: ${intent.intent} (confidence: ${intent.confidence})`);
 
             // Step 3: Execute Action
@@ -65,7 +78,7 @@ class VoiceAssistantService {
             await this._logInteraction({
                 sessionId,
                 userId,
-                transcription: transcription.text,
+                transcription: finalText,
                 intent: intent.intent,
                 confidence: intent.confidence,
                 response: responseText,
@@ -76,13 +89,14 @@ class VoiceAssistantService {
             return {
                 success: true,
                 sessionId,
-                transcription: transcription.text,
+                transcription: finalText,
                 intent: intent.intent,
                 confidence: intent.confidence,
                 response: responseText,
                 audioBuffer: speechAudio,
                 action: actionResult.action,
                 navigate: actionResult.navigate,
+                openUrl: actionResult.openUrl,
                 data: actionResult.data,
             };
         } catch (error) {
@@ -157,6 +171,7 @@ class VoiceAssistantService {
                 audioBuffer: speechAudio,
                 action: actionResult.action,
                 navigate: actionResult.navigate,
+                openUrl: actionResult.openUrl,
                 data: actionResult.data,
             };
         } catch (error) {

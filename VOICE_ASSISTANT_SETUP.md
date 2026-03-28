@@ -1,48 +1,43 @@
-# Karen Voice Assistant - Siri Style
+﻿# Karen Voice Assistant (Project Implementation)
 
-## ✨ What Is This?
+## Overview
+Karen is a click-to-talk voice assistant embedded in the NeoCode UI. It records audio in the browser, sends it to the backend, and plays a spoken response with optional navigation or external link actions. There is no wake-word detection in the current implementation.
 
-**Karen** is a Siri-inspired voice assistant for NeoCode that:
-- ✅ **Always listens** for "Hey Karen" wake word
-- ✅ **Voice-only** interaction (no buttons, no typing)
-- ✅ **Beautiful Siri-style** UI with wave animations
-- ✅ **Bottom-center** overlay when active
-- ✅ **Auto-closes** after response
-- ✅ **Context-aware** - knows what page you're on
+Key traits in this build:
+- Click-to-activate (floating button)
+- Voice-only interaction (no text box)
+- Siri-style overlay UI with animated bars and status states
+- Context-aware (current page, current problem, current course)
+- Auto-closes after response
 
-## 🎤 How to Use
+## How to Use
+1. Click the floating purple button in the bottom-left.
+2. Speak your command.
+3. The assistant processes and speaks back.
+4. The panel auto-closes after the response.
 
-### Basic Usage
+## Example Commands (Based on Intent Router)
+- "Start an interview on arrays"
+- "Open interviews"
+- "Explain binary search"
+- "Show dashboard"
+- "Open operating systems course"
+- "Review flashcards"
+- "Show my progress"
+- "Solve a medium problem"
+- "Give me a hint" (only works when you are on a problem page)
+- "Open YouTube"
 
-1. **Say "Hey Karen"** - The assistant activates automatically
-2. **Speak your command** - It starts recording immediately
-3. **Listen to response** - Karen speaks back and auto-closes
-4. **Done!** - Returns to background wake word detection
-
-### Example Commands
-
-```
-"Hey Karen"
-→ [Activates] "Start an interview"
-→ [Response] "Starting interview session..."
-
-"Hey Karen"
-→ [Activates] "Show my progress"  
-→ [Response] "Here's your progress..."
-
-"Hey Karen"
-→ [Activates] "Explain binary search"
-→ [Response] "Binary search is..."
-```
-
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
-- Backend server running on `http://localhost:3000`
-- User must be logged in (JWT token required)
-- Microphone permission granted
+- Backend server running at `VITE_BACKEND_URL` (defaults to `http://localhost:3000`)
+- User must be logged in (JWT cookie `neo_code_jwt_token`)
+- Microphone permission granted in the browser
 
 ### Step 1: Database Setup
+Run the voice assistant migration (creates `assistant_interactions` and analytics view):
+
 ```bash
 cd bz-server
 node setup-voice-assistant.js
@@ -54,162 +49,129 @@ node setup-voice-assistant.js
 cd bz-server
 npm run dev
 
-# Terminal 2 - Frontend  
+# Terminal 2 - Frontend
 cd bz-client
 npm run dev
 ```
 
 ### Step 3: Grant Permissions
-1. Open the app in browser
-2. Browser will ask for **microphone permission** - Click **Allow**
-3. Say "Hey Karen" to activate
+1. Open the app in the browser.
+2. Allow microphone access when prompted.
+3. Click the floating button to talk.
 
-## 💡 Available Commands
+## UI and Behavior (Actual Client Implementation)
+- Floating action button: bottom-left, purple gradient orb
+- Active overlay: full-screen blur backdrop + bottom panel
+- Status states:
+  - Listening (red/pink bars)
+  - Thinking (blue/cyan bars)
+  - Speaking (green bars)
+- Auto-stop recording after 10 seconds
+- Auto-close after response (2 seconds) or error (3 seconds)
 
-### Interview & Practice
-- "Start interview"
-- "Start an easy interview on arrays"  
-- "Begin a hard dynamic programming interview"
+## Client Flow (bz-client)
+Component: `bz-client/src/components/Common/VoiceAssistant.jsx`
 
-### Learning & Help
-- "Explain binary search"
-- "What is dynamic programming"
-- "Solve a problem"
-- "Solve a medium graph problem"
+1. Click button to activate.
+2. Start `MediaRecorder` and collect a `.webm` audio blob.
+3. Run browser live transcription using `SpeechRecognition` if available.
+4. POST multipart form to `POST /api/assistant/voice` with:
+   - `audio`: `.webm` file
+   - `context`: `{ currentPage, currentProblem?, currentCourse? }`
+   - `clientTranscript` (if browser STT provides it)
+5. Receive WAV audio and metadata via headers, then:
+   - Play audio response
+   - Navigate if `X-Navigate` is present
+   - Open external URL if `X-Open-Url` is present
 
-### Navigation
-- "Show dashboard"
-- "Show my progress"
-- "Open operating systems course"
+## Backend Flow (bz-server)
+Service: `bz-server/src/ai/voice-assistant/services/VoiceAssistantService.js`
 
-### Context-Aware (on problem pages)
-- "Give me a hint"
-- "Explain this problem"
+Pipeline:
+1. Audio or client transcript input
+2. STT (Whisper) if client transcript missing
+3. Intent parsing (`IntentRouter`)
+4. Action execution (`ActionExecutor`)
+5. LLM generation for certain actions (`llm_interview` provider)
+6. TTS (Piper) to generate audio response
+7. Log interaction in `assistant_interactions`
 
-## 🎨 Design Features
+## API Endpoints
+Base path: `/api/assistant`
 
-### Siri-Style Interface
-- **Position**: Bottom-center, full-width card
-- **Backdrop**: Blur overlay with gradient
-- **Animations**: 12 vertical wave bars that react to states
-- **States**:
-  - 🔴 **Listening** - Red gradient waves, pulsing
-  - 🔵 **Thinking** - Blue gradient waves, steady
-  - 🟢 **Speaking** - Green gradient waves, pulsing
+- `POST /voice`
+  - multipart/form-data: `audio`, `context`, `clientTranscript`
+  - Response: audio/wav with headers:
+    - `X-Transcription`
+    - `X-Intent`
+    - `X-Response-Text`
+    - `X-Navigate`
+    - `X-Open-Url`
+    - `X-Action`
 
-### Auto-Behavior
-- ✅ Always listening for "Hey Karen" in background
-- ✅ Auto-activates when wake word detected
-- ✅ Auto-starts recording after activation
-- ✅ Auto-closes after 2-3 seconds
-- ✅ No manual buttons required
+- `POST /text`
+  - Body: `{ text, context, needsAudio }`
+  - Response: JSON with response fields and optional audio flag
 
-## 🔧 Technical Details
+- `GET /history?limit=20`
+  - Returns the user's recent assistant interactions
 
-### Architecture
+- `GET /health`
+  - Returns provider health (Whisper STT, Piper TTS, Ollama LLM)
+
+- `POST /greeting`
+  - Returns a personalized greeting string
+
+## Supported Intents (Current Router)
+- `greeting`
+- `start_interview` (requires topic; asks if missing)
+- `open_interviews`
+- `open_external` (YouTube, Google, GitHub, LeetCode, StackOverflow, Reddit, LinkedIn, X)
+- `explain_concept` (LLM-generated)
+- `show_dashboard`
+- `open_course` (finds best matching course)
+- `review_flashcards` (checks due count)
+- `check_progress`
+- `solve_problem` (filters by difficulty/topic)
+- `get_hints` (only if `currentProblem` is available)
+- `unknown` (fallback)
+
+## Data Storage and Analytics
+The assistant logs every interaction to `assistant_interactions` via the migration in `bz-server/database/migrations/004_voice_assistant.sql`.
+
+Example queries:
+```sql
+SELECT * FROM assistant_interactions
+WHERE user_id = 'YOUR_USER_ID'
+ORDER BY created_at DESC
+LIMIT 10;
 ```
-BackgroundWakeWordDetection
-   ↓ (detects "Hey Karen")
-MediaRecorder API
-   ↓ (records 10 seconds max)
-POST /api/assistant/voice
-   ↓
-WhisperSTT → IntentRouter → ActionExecutor → PiperTTS
-   ↓
-Audio Response + Navigation
-   ↓
-Auto-close
-```
 
-### Wake Word Detection
-- Uses browser `SpeechRecognition` API
-- Runs continuously in background
-- Low power consumption
-- Chrome/Edge only (not Firefox/Safari)
-
-## 🐛 Troubleshooting
-
-### "Microphone access denied"
-**Cause**: Browser blocked mic permissions  
-**Fix**: 
-1. Click the 🔒 lock icon in address bar
-2. Allow microphone access
-3. Reload the page
-
-### "Speech recognition not supported"
-**Cause**: Using Firefox or Safari  
-**Fix**: Use Chrome or Edge browser (wake word detection only works in Chromium browsers)
-
-### "No network calls to backend"
-**Cause 1**: Not logged in  
-**Fix**: Login first, JWT token required
-
-**Cause 2**: Backend server not running  
-**Fix**: 
-```bash
-cd bz-server
-npm run dev
-```
-
-**Cause 3**: Wrong backend URL  
-**Fix**: Check `bz-client/.env` has `VITE_BACKEND_URL=http://localhost:3000`
-
-### "Notion meeting notification appearing"
-**Cause**: Browser SpeechRecognition API triggers Notion's meeting detection  
-**Fix**: This is a browser behavior - Notion detects microphone usage. You can:
-- Ignore the notification (doesn't affect Karen)
-- Disable Notion extension while using Karen
-- Use Chrome incognito mode
-
-### "Assistant not responding to 'Hey Karen'"
-**Cause**: Background detection may have stopped  
-**Fix**: Reload the page to restart wake word detection
-
-### "Failed to process command" error
-**Cause 1**: Backend voice providers not running  
-**Fix**: Check backend logs - Whisper/Piper/Ollama must be available
-
-**Cause 2**: Audio format issue  
-**Fix**: Browser sends .webm audio - backend must support it
-
-## 📊 Analytics
-
-View assistant usage stats:
 ```sql
 SELECT * FROM v_assistant_analytics;
 ```
 
-Check conversation history:
-```sql
-SELECT * FROM assistant_interactions 
-WHERE user_id = 'YOUR_USER_ID' 
-ORDER BY created_at DESC LIMIT 10;
-```
+## Troubleshooting
 
-## 🎯 Comparison: Old vs New Design
+### "Microphone access denied"
+Cause: Browser blocked mic permission.
+Fix:
+1. Click the lock icon in the address bar.
+2. Allow microphone access.
+3. Reload the page.
 
-### Old Design (Removed)
-- ❌ Floating button in bottom-right
-- ❌ Chat panel with text input
-- ❌ Quick action buttons
-- ❌ Manual activation required
+### "Speech recognition not supported"
+Cause: Browser does not support Web Speech API.
+Fix: Live transcript will be skipped; voice still works using server STT.
 
-### New Design (Siri-Style)
-- ✅ No buttons - voice-only
-- ✅ Bottom-center full-width card
-- ✅ Wave animation like Siri
-- ✅ Auto-activates on "Hey Karen"
-- ✅ Auto-closes after response
-- ✅ Minimal, beautiful, focused
+### "Please login first"
+Cause: Missing JWT cookie (`neo_code_jwt_token`).
+Fix: Log in before using the assistant.
 
-## 🚀 Future Enhancements
-
-- **Multi-turn conversations** - Remember context across commands
-- **Custom wake words** - Porcupine for offline detection
-- **Streaming responses** - Lower latency TTS
-- **Voice navigation** - "Go to next problem"
-- **Proactive hints** - Karen suggests help when stuck
+### "Failed to process command"
+Cause: Voice providers not running or backend error.
+Fix: Check backend logs and provider health.
 
 ---
 
-**Note**: Karen is voice-only by design. If you need text-based AI support, use the regular chat assistant instead.
+Note: Wake-word detection ("Hey Karen") is not implemented in the current client. Activation is click-only.

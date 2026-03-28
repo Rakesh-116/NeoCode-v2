@@ -141,7 +141,11 @@ export default class OllamaInterviewLLM extends IInterviewLLM {
   "question": "your question text",
   "type": "technical|behavioral|system_design|coding",
   "difficulty": "easy|medium|hard",
+  "topic": "short topic label (e.g., React internals)",
   "expectedKeywords": ["keyword1", "keyword2"],
+  "follow_ups": ["follow up 1", "follow up 2"],
+  "evaluation_criteria": "1-2 sentences on what a great answer must cover",
+  "concept_tags": ["tag1", "tag2", "tag3"],
   "problemSpec": null | {
     "title": "short title",
     "description": "full statement",
@@ -156,6 +160,7 @@ export default class OllamaInterviewLLM extends IInterviewLLM {
   }
 }
 5. If type is "coding", you MUST fill a complete problemSpec suitable for NeoCode's Create Problem API.
+6. Always include follow_ups (empty array if none) and evaluation_criteria (short sentence if unknown).
 
 Return ONLY valid JSON, no additional text.`;
 
@@ -180,6 +185,7 @@ ${context.answer}
 **Evaluation Criteria:**
 - Topic: ${context.topic}
 - Difficulty: ${context.difficulty}
+${context.evaluationCriteria ? `- Specific Criteria: ${context.evaluationCriteria}` : ""}
 ${context.timeToAnswer ? `- Time Taken: ${context.timeToAnswer}s` : ""}
 
 **Instructions:**
@@ -187,12 +193,17 @@ Evaluate the answer and return a JSON object with:
 {
   "score": <0-100>,
   "verdict": "excellent|good|average|poor|failed",
-  "feedback": "detailed feedback on the answer",
+  "feedback": "detailed feedback on the answer with quotes from the candidate",
   "detectedMistakes": ["mistake1", "mistake2"],
   "strengths": ["strength1", "strength2"],
   "improvements": ["improvement1", "improvement2"],
   "followUpSuggested": true|false
 }
+
+Feedback rules:
+- Quote the candidate verbatim at least 2 times (short phrases).
+- For each quote, ground an evaluation point: "Based on the candidate saying X, their understanding of Y is Z."
+- Be specific and actionable. Avoid generic praise.
 
 Scoring Guide:
 - 90-100: Excellent (comprehensive, accurate, well-explained)
@@ -274,16 +285,103 @@ Return JSON with same structure as before.`;
             cleanResponse = cleanResponse.replace(/\s*```$/, "");
             cleanResponse = cleanResponse.trim();
 
-            // Now try to extract JSON object
-            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-            const jsonStr = jsonMatch ? jsonMatch[0] : cleanResponse;
+            const tryParseJson = (text) => {
+                let candidate = String(text || "").trim();
+                const firstBrace = candidate.indexOf("{");
+                const lastBrace = candidate.lastIndexOf("}");
+                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                    candidate = candidate.slice(firstBrace, lastBrace + 1);
+                }
+                candidate = candidate.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
 
-            const parsed = JSON.parse(jsonStr);
+                let out = "";
+                let inString = false;
+                let escaped = false;
+                for (let i = 0; i < candidate.length; i += 1) {
+                    const ch = candidate[i];
+                    if (escaped) {
+                        out += ch;
+                        escaped = false;
+                        continue;
+                    }
+                    if (ch === "\\") {
+                        out += ch;
+                        escaped = true;
+                        continue;
+                    }
+                    if (ch === '"') {
+                        out += ch;
+                        inString = !inString;
+                        continue;
+                    }
+                    if (!inString && (ch === "{" || ch === ",")) {
+                        out += ch;
+                        let j = i + 1;
+                        while (j < candidate.length && /\s/.test(candidate[j])) {
+                            out += candidate[j];
+                            j += 1;
+                        }
+                        if (candidate[j] === '"') {
+                            i = j - 1;
+                            continue;
+                        }
+                        const keyStart = j;
+                        while (j < candidate.length && /[A-Za-z0-9_]/.test(candidate[j])) {
+                            j += 1;
+                        }
+                        const key = candidate.slice(keyStart, j);
+                        if (key.length > 0) {
+                            let k = j;
+                            while (k < candidate.length && /\s/.test(candidate[k])) {
+                                k += 1;
+                            }
+                            if (candidate[k] === ":") {
+                                out += "";
+                                i = j - 1;
+                                continue;
+                            }
+                        }
+                    }
+                    out += ch;
+                }
+
+                out = out.replace(/,\s*([}\]])/g, "").trim();
+                return JSON.parse(out);
+            };
+
+            let parsed;
+            try {
+                parsed = tryParseJson(cleanResponse);
+            } catch (primaryError) {
+                const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw primaryError;
+                }
+                parsed = tryParseJson(jsonMatch[0]);
+            }
+
+            const followUps = Array.isArray(parsed.follow_ups)
+                ? parsed.follow_ups
+                : Array.isArray(parsed.followUps)
+                  ? parsed.followUps
+                  : [];
+            const conceptTags = Array.isArray(parsed.concept_tags)
+                ? parsed.concept_tags
+                : Array.isArray(parsed.conceptTags)
+                  ? parsed.conceptTags
+                  : [];
+            const evaluationCriteria = parsed.evaluation_criteria || parsed.evaluationCriteria || null;
+
+            const questionText = typeof parsed.question === "string" ? parsed.question : cleanResponse;
 
             return {
-                question: parsed.question,
+                question: questionText,
                 type: parsed.type || "technical",
                 difficulty: parsed.difficulty || "medium",
+                topic: parsed.topic || null,
+                followUps,
+                evaluationCriteria,
+                conceptTags,
                 expectedKeywords: parsed.expectedKeywords || [],
                 problemSpec: parsed.problemSpec || null,
                 metadata: { rawResponse: response },
@@ -296,6 +394,10 @@ Return JSON with same structure as before.`;
                 question: response.trim(),
                 type: "technical",
                 difficulty: "medium",
+                topic: null,
+                followUps: [],
+                evaluationCriteria: null,
+                conceptTags: [],
                 expectedKeywords: [],
                 problemSpec: null,
                 metadata: { parseError: true },
@@ -378,3 +480,4 @@ Return JSON with same structure as before.`;
         }
     }
 }
+

@@ -23,6 +23,99 @@ const normalizeProblemData = (question, turnNumber) => {
     };
   }
 
+  const tryParseQuestionJson = (value) => {
+    if (!value || typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("{") || !trimmed.includes('"question"')) return null;
+
+    let candidate = trimmed;
+    const firstBrace = candidate.indexOf("{");
+    const lastBrace = candidate.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      candidate = candidate.slice(firstBrace, lastBrace + 1);
+    }
+    candidate = candidate.replace(/[“”]/g, "\"").replace(/[‘’]/g, "'");
+
+    let out = "";
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < candidate.length; i += 1) {
+      const ch = candidate[i];
+      if (escaped) {
+        out += ch;
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        out += ch;
+        escaped = true;
+        continue;
+      }
+      if (ch === "\"") {
+        out += ch;
+        inString = !inString;
+        continue;
+      }
+      if (!inString && (ch === "{" || ch === ",")) {
+        out += ch;
+        let j = i + 1;
+        while (j < candidate.length && /\s/.test(candidate[j])) {
+          out += candidate[j];
+          j += 1;
+        }
+        if (candidate[j] === "\"") {
+          i = j - 1;
+          continue;
+        }
+        const keyStart = j;
+        while (j < candidate.length && /[A-Za-z0-9_]/.test(candidate[j])) {
+          j += 1;
+        }
+        const key = candidate.slice(keyStart, j);
+        if (key.length > 0) {
+          let k = j;
+          while (k < candidate.length && /\s/.test(candidate[k])) {
+            k += 1;
+          }
+          if (candidate[k] === ":") {
+            out += `"${key}"`;
+            i = j - 1;
+            continue;
+          }
+        }
+      }
+      out += ch;
+    }
+
+    out = out.replace(/,\s*([}\]])/g, "$1").trim();
+
+    try {
+      return JSON.parse(out);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const parsed = tryParseQuestionJson(question?.question);
+  if (parsed?.problemSpec) {
+    const spec = parsed.problemSpec || {};
+    return {
+      id: question?.problemId || null,
+      title: spec.title || `Interview Coding Question ${turnNumber}`,
+      description: spec.description || parsed.question || "Problem statement is unavailable.",
+      difficulty: parsed.difficulty || question?.difficulty || "medium",
+      inputFormat: spec.input_format || "N/A",
+      outputFormat: spec.output_format || "N/A",
+      constraints: spec.constraints || "N/A",
+      prohibitedKeys: spec.prohibited_keys || null,
+      sampleTestcases: spec.sample_testcase || { input: "", output: "" },
+      explaination: spec.explaination,
+      solution: null,
+      solutionLanguage: null,
+      category: spec.category || [],
+    };
+  }
+
   return {
     id: question?.problemId || null,
     title: `Interview Coding Question ${turnNumber}`,
@@ -65,8 +158,32 @@ const InterviewCodingWorkspace = ({ sessionId, turnNumber, question }) => {
       ? constraints.split(",").map((item) => item.trim()).filter(Boolean)
       : null;
 
-  const sampleInput = problem.sampleTestcases?.input || "";
-  const sampleOutput = problem.sampleTestcases?.output || "";
+  const toDisplayString = (value) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(value);
+    }
+  };
+
+  const sampleInput = toDisplayString(problem.sampleTestcases?.input || "");
+  const sampleOutput = toDisplayString(problem.sampleTestcases?.output || "");
+
+  const meta = question?.questionMeta || {};
+  const conceptTags = question?.conceptTags || meta.conceptTags || [];
+  const followUps = meta.followUps || [];
+  const evaluationCriteria =
+    question?.validationCriteria?.evaluation_criteria ||
+    meta.evaluationCriteria ||
+    null;
+  const topic = meta.topic || question?.topic || null;
+  const hasMeta =
+    topic ||
+    evaluationCriteria ||
+    (conceptTags && conceptTags.length > 0) ||
+    (followUps && followUps.length > 0);
 
   return (
     <div className="w-full">
@@ -87,6 +204,33 @@ const InterviewCodingWorkspace = ({ sessionId, turnNumber, question }) => {
             <Section title="Description" content={problem.description} />
             <Section title="Input Format" content={problem.inputFormat} />
             <Section title="Output Format" content={problem.outputFormat} />
+
+            {hasMeta && (
+              <>
+                <hr className="border-white/10 w-full my-4" />
+                <h3 className="text-white text-lg font-semibold">Interview Metadata</h3>
+                {topic && (
+                  <p className="text-white/90">
+                    <span className="text-white/60">Topic:</span> {topic}
+                  </p>
+                )}
+                {evaluationCriteria && (
+                  <p className="text-white/90">
+                    <span className="text-white/60">Evaluation Criteria:</span> {evaluationCriteria}
+                  </p>
+                )}
+                {conceptTags && conceptTags.length > 0 && (
+                  <p className="text-white/90">
+                    <span className="text-white/60">Concept Tags:</span> {conceptTags.join(", ")}
+                  </p>
+                )}
+                {followUps && followUps.length > 0 && (
+                  <p className="text-white/90">
+                    <span className="text-white/60">Suggested Follow-ups:</span> {followUps.join(" • ")}
+                  </p>
+                )}
+              </>
+            )}
 
             <hr className="border-white/10 w-full my-4" />
             <h3 className="text-white text-lg font-semibold">Constraints</h3>

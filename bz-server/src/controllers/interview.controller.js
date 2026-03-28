@@ -546,6 +546,7 @@ export const getQuestionByTurn = async (req, res) => {
     try {
         const { sessionId, turnNumber } = req.params;
         const userId = req.userId;
+        const includeAudio = req.query.includeAudio !== "false";
 
         // Verify session belongs to user
         const sessionCheck = await pool.query("SELECT user_id FROM interview_sessions WHERE id = $1", [sessionId]);
@@ -564,7 +565,9 @@ export const getQuestionByTurn = async (req, res) => {
             });
         }
 
-        const question = await interviewOrchestrator.getQuestionByTurn(sessionId, parseInt(turnNumber));
+        const question = await interviewOrchestrator.getQuestionByTurn(sessionId, parseInt(turnNumber), {
+            includeAudio,
+        });
 
         res.status(200).json({
             success: true,

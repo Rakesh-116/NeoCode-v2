@@ -7,6 +7,7 @@ const AudioRecorder = ({ onSubmit, disabled = false }) => {
     const [audioBlob, setAudioBlob] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const [waveformData, setWaveformData] = useState([]);
+    const [showSilencePrompt, setShowSilencePrompt] = useState(false);
 
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
@@ -14,6 +15,9 @@ const AudioRecorder = ({ onSubmit, disabled = false }) => {
     const animationRef = useRef(null);
     const analyserRef = useRef(null);
     const audioContextRef = useRef(null);
+    const lastNonSilentAtRef = useRef(0);
+    const silencePromptedRef = useRef(false);
+    const silenceThreshold = 0.03; // normalized 0-1
 
     useEffect(() => {
         return () => {
@@ -52,6 +56,9 @@ const AudioRecorder = ({ onSubmit, disabled = false }) => {
             mediaRecorderRef.current.start();
             setIsRecording(true);
             setRecordingTime(0);
+            setShowSilencePrompt(false);
+            silencePromptedRef.current = false;
+            lastNonSilentAtRef.current = performance.now();
 
             // Start timer
             timerRef.current = setInterval(() => {
@@ -72,6 +79,7 @@ const AudioRecorder = ({ onSubmit, disabled = false }) => {
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
+            setShowSilencePrompt(false);
 
             if (timerRef.current) {
                 clearInterval(timerRef.current);
@@ -111,6 +119,19 @@ const AudioRecorder = ({ onSubmit, disabled = false }) => {
             for (let i = 0; i < samples; i++) {
                 const value = dataArray[i * step];
                 bars.push(value / 255); // Normalize to 0-1
+            }
+
+            const avgLevel = bars.reduce((sum, value) => sum + value, 0) / bars.length;
+            const now = performance.now();
+            if (avgLevel >= silenceThreshold) {
+                lastNonSilentAtRef.current = now;
+                if (showSilencePrompt) {
+                    setShowSilencePrompt(false);
+                }
+                silencePromptedRef.current = false;
+            } else if (!silencePromptedRef.current && now - lastNonSilentAtRef.current >= 5000) {
+                setShowSilencePrompt(true);
+                silencePromptedRef.current = true;
             }
 
             setWaveformData(bars);
@@ -162,6 +183,13 @@ const AudioRecorder = ({ onSubmit, disabled = false }) => {
                             }}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Silence Prompt */}
+            {isRecording && showSilencePrompt && (
+                <div className="mb-6 text-center text-sm text-white/70 bg-white/10 border border-white/20 rounded-lg px-4 py-2">
+                    Take your time — whenever you're ready, keep going.
                 </div>
             )}
 

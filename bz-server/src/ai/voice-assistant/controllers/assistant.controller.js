@@ -20,14 +20,16 @@ export const processVoiceCommandController = async (req, res) => {
     try {
         const userId = req.userId; // From authentication middleware
 
-        if (!req.files || !req.files.audio) {
+        const clientTranscript = req.body.clientTranscript || "";
+
+        if ((!req.files || !req.files.audio) && !clientTranscript) {
             return res.status(400).json({
                 success: false,
-                message: "Audio file is required",
+                message: "Audio file or client transcript is required",
             });
         }
 
-        const audioBuffer = req.files.audio.data;
+        const audioBuffer = req.files?.audio?.data || null;
         const context = req.body.context ? JSON.parse(req.body.context) : {};
 
         console.log(`[AssistantController] Processing voice command for user ${userId}`);
@@ -35,7 +37,8 @@ export const processVoiceCommandController = async (req, res) => {
         const result = await voiceAssistantService.processVoiceCommand(
             audioBuffer,
             userId,
-            context
+            context,
+            clientTranscript
         );
 
         // Send audio response
@@ -45,6 +48,7 @@ export const processVoiceCommandController = async (req, res) => {
             "X-Intent": result.intent || "unknown",
             "X-Response-Text": encodeURIComponent(result.response || ""),
             "X-Navigate": result.navigate || "",
+            "X-Open-Url": result.openUrl || "",
             "X-Action": result.action || "",
         });
 
@@ -95,6 +99,7 @@ export const processTextCommandController = async (req, res) => {
             confidence: result.confidence,
             action: result.action,
             navigate: result.navigate,
+            openUrl: result.openUrl,
             data: result.data,
             hasAudio: !!result.audioBuffer,
         });

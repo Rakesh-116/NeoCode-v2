@@ -529,6 +529,12 @@ NeoMentor is:
     - [x] Complete frontend UI (InterviewSetup, InterviewRoom, InterviewSummary, Interviews)
     - [x] Audio transcript storage (`audio_transcripts` table)
     - [x] Provider registry (`ai_voice_providers` table for pluggable STT/TTS/LLM)
+- [ ] **Interview Experience Enhancements**
+- [x] Silence detection with gentle prompt after 5 seconds
+- [x] Live transcription display during interview
+- [ ] Interruption handling (candidate can interrupt AI)
+- [ ] Session replay with timestamped feedback overlays
+- [ ] Difficulty calibration based on answer quality
 - [x] Normalized questions system (`normalized_questions` unified question format)
 - [x] Evaluation results tracking (`evaluation_results` unified across quiz/code/explain)
 - [x] Learning profile system (LearningProfile service + frontend UI page)

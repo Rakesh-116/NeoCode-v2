@@ -16,7 +16,7 @@ app.use(
         origin: allowedOrigins,
         credentials: true,
         allowedHeaders: ["Content-Type", "Authorization"],
-        exposedHeaders: ["X-Transcription", "X-Response-Text", "X-Navigate", "X-Intent", "X-Action"],
+        exposedHeaders: ["X-Transcription", "X-Response-Text", "X-Navigate", "X-Open-Url", "X-Intent", "X-Action"],
     }),
 );
 

@@ -30,12 +30,29 @@ const isCodingQuestion = (generatedQuestion) => {
 
 const buildProblemSpec = (generatedQuestion, index) => {
     const spec = generatedQuestion?.problemSpec || {};
-    const sample =
-        spec.sample_testcase && typeof spec.sample_testcase === "object"
-            ? spec.sample_testcase
-            : { input: "", output: "" };
+    const normalizeValue = (value) => {
+        if (value === null || value === undefined) return "";
+        if (typeof value === "string") return value;
+        try {
+            return JSON.stringify(value);
+        } catch (error) {
+            return String(value);
+        }
+    };
+    const normalizeTestcase = (testcase) => {
+        if (!testcase || typeof testcase !== "object") {
+            return { input: "", output: "" };
+        }
+        return {
+            input: normalizeValue(testcase.input),
+            output: normalizeValue(testcase.output),
+        };
+    };
+
+    const sample = normalizeTestcase(spec.sample_testcase);
 
     let hidden = Array.isArray(spec.hidden_testcases) ? spec.hidden_testcases.filter(Boolean) : [];
+    hidden = hidden.map((testcase) => normalizeTestcase(testcase));
     if (hidden.length === 0) {
         hidden = [sample, sample];
     } else if (hidden.length === 1) {
@@ -57,6 +74,78 @@ const buildProblemSpec = (generatedQuestion, index) => {
         category: Array.isArray(spec.category) && spec.category.length > 0 ? spec.category : ["Array"],
         prohibited_keys: spec.prohibited_keys || null,
     };
+};
+
+const parseQuestionPayload = (rawText) => {
+    if (!rawText || typeof rawText !== "string") return null;
+    const trimmed = rawText.trim();
+    if (!trimmed.startsWith("{") || !trimmed.includes('"question"')) return null;
+
+    let candidate = trimmed;
+    const firstBrace = candidate.indexOf("{");
+    const lastBrace = candidate.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        candidate = candidate.slice(firstBrace, lastBrace + 1);
+    }
+    candidate = candidate.replace(/[â€œâ€]/g, '"').replace(/[â€˜â€™]/g, "'");
+
+    let out = "";
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < candidate.length; i += 1) {
+        const ch = candidate[i];
+        if (escaped) {
+            out += ch;
+            escaped = false;
+            continue;
+        }
+        if (ch === "\\") {
+            out += ch;
+            escaped = true;
+            continue;
+        }
+        if (ch === '"') {
+            out += ch;
+            inString = !inString;
+            continue;
+        }
+        if (!inString && (ch === "{" || ch === ",")) {
+            out += ch;
+            let j = i + 1;
+            while (j < candidate.length && /\s/.test(candidate[j])) {
+                out += candidate[j];
+                j += 1;
+            }
+            if (candidate[j] === '"') {
+                i = j - 1;
+                continue;
+            }
+            const keyStart = j;
+            while (j < candidate.length && /[A-Za-z0-9_]/.test(candidate[j])) {
+                j += 1;
+            }
+            const key = candidate.slice(keyStart, j);
+            if (key.length > 0) {
+                let k = j;
+                while (k < candidate.length && /\s/.test(candidate[k])) {
+                    k += 1;
+                }
+                if (candidate[k] === ":") {
+                    out += `"${key}"`;
+                    i = j - 1;
+                    continue;
+                }
+            }
+        }
+        out += ch;
+    }
+    out = out.replace(/,\s*([}\]])/g, "$1").trim();
+
+    try {
+        return JSON.parse(out);
+    } catch (error) {
+        return null;
+    }
 };
 
 export const getDueConcepts = async (req, res) => {
@@ -145,8 +234,50 @@ export const startSmartReview = async (req, res) => {
             };
 
             const generatedQuestion = await llmProvider.generateQuestion(questionContext);
+            if (!generatedQuestion?.problemSpec && typeof generatedQuestion?.question === "string") {
+                const trimmed = generatedQuestion.question.trim();
+                if (trimmed.startsWith("{") && trimmed.includes('"problemSpec"')) {
+                    const parsed = parseQuestionPayload(trimmed);
+                    if (parsed) {
+                        if (parsed.question) generatedQuestion.question = parsed.question;
+                        if (parsed.problemSpec) generatedQuestion.problemSpec = parsed.problemSpec;
+                        if (parsed.type) generatedQuestion.type = parsed.type;
+                        if (parsed.difficulty) generatedQuestion.difficulty = parsed.difficulty;
+                        if (parsed.expectedKeywords) generatedQuestion.expectedKeywords = parsed.expectedKeywords;
+                        if (parsed.follow_ups || parsed.followUps) {
+                            generatedQuestion.followUps = parsed.follow_ups || parsed.followUps;
+                        }
+                        if (parsed.evaluation_criteria || parsed.evaluationCriteria) {
+                            generatedQuestion.evaluationCriteria =
+                                parsed.evaluation_criteria || parsed.evaluationCriteria;
+                        }
+                        if (parsed.concept_tags || parsed.conceptTags) {
+                            generatedQuestion.conceptTags = parsed.concept_tags || parsed.conceptTags;
+                        }
+                        if (parsed.topic) generatedQuestion.topic = parsed.topic;
+                    } else {
+                        console.warn("[SmartReview] Failed to recover JSON question payload");
+                    }
+                }
+            }
             const isCoding = isCodingQuestion(generatedQuestion);
             const questionType = isCoding ? "coding" : generatedQuestion.type || "technical";
+            const conceptTags = Array.isArray(generatedQuestion.conceptTags)
+                ? generatedQuestion.conceptTags.filter(Boolean)
+                : [];
+            const evaluationCriteria = generatedQuestion.evaluationCriteria
+                ? String(generatedQuestion.evaluationCriteria)
+                : null;
+            const questionMetadata = {
+                questionFormatVersion: 1,
+                topic: generatedQuestion.topic || conceptTag,
+                followUps: Array.isArray(generatedQuestion.followUps) ? generatedQuestion.followUps : [],
+                evaluationCriteria,
+                expectedKeywords: Array.isArray(generatedQuestion.expectedKeywords)
+                    ? generatedQuestion.expectedKeywords
+                    : [],
+                conceptTags,
+            };
 
             let problemId = null;
             if (isCoding) {
@@ -193,9 +324,9 @@ export const startSmartReview = async (req, res) => {
                 INSERT INTO interview_turns (
                     session_id, turn_number, question_text,
                     question_type, question_difficulty, requires_code_editor, problem_id,
-                    concept_tags, question_generated_at
+                    concept_tags, validation_criteria, llm_metadata, question_generated_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW())
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, NOW())
             `,
                 [
                     sessionId,
@@ -205,7 +336,13 @@ export const startSmartReview = async (req, res) => {
                     difficulty,
                     isCoding,
                     problemId,
-                    JSON.stringify([conceptTag]),
+                    JSON.stringify(conceptTags.length > 0 ? conceptTags : [conceptTag]),
+                    JSON.stringify(
+                        evaluationCriteria
+                            ? { evaluation_criteria: evaluationCriteria }
+                            : {},
+                    ),
+                    JSON.stringify(questionMetadata),
                 ],
             );
 

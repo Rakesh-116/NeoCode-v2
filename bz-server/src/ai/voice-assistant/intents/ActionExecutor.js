@@ -29,6 +29,12 @@ class ActionExecutor {
                 case "start_interview":
                     return await this._handleStartInterview(intent, userId);
 
+                case "open_interviews":
+                    return await this._handleOpenInterviews(intent, userId);
+
+                case "open_external":
+                    return await this._handleOpenExternal(intent, userId);
+
                 case "explain_concept":
                     return await this._handleExplainConcept(intent, userId);
 
@@ -147,6 +153,76 @@ class ActionExecutor {
                 error: error.message,
             };
         }
+    }
+
+    /**
+     * Handle open interviews page intent
+     * @private
+     */
+    async _handleOpenInterviews() {
+        return {
+            success: true,
+            response: "Taking you to the interview page.",
+            action: "navigate",
+            navigate: "/interviews",
+        };
+    }
+
+    /**
+     * Handle open external site intent
+     * @private
+     */
+    async _handleOpenExternal(intent) {
+        const target = intent.entities?.target;
+        const resolvedUrl = this._resolveExternalUrl(target);
+
+        if (resolvedUrl) {
+            return {
+                success: true,
+                response: `Opening ${target} in a new tab.`,
+                action: "open_external",
+                openUrl: resolvedUrl,
+            };
+        }
+
+        return {
+            success: false,
+            response: "I couldn't figure out that site. Try saying 'open youtube' or 'open github'.",
+            action: "open_external",
+        };
+    }
+
+    /**
+     * Resolve external target into URL
+     * @private
+     */
+    _resolveExternalUrl(target) {
+        if (!target || typeof target !== "string") return null;
+
+        const cleaned = target.toLowerCase().trim().replace(/\s+dot\s+/g, ".");
+        const siteMap = {
+            youtube: "https://www.youtube.com",
+            google: "https://www.google.com",
+            github: "https://github.com",
+            leetcode: "https://leetcode.com",
+            stackoverflow: "https://stackoverflow.com",
+            reddit: "https://www.reddit.com",
+            linkedin: "https://www.linkedin.com",
+            x: "https://x.com",
+            twitter: "https://x.com",
+        };
+
+        if (siteMap[cleaned]) return siteMap[cleaned];
+
+        if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+            return cleaned;
+        }
+
+        if (cleaned.includes(".")) {
+            return `https://${cleaned}`;
+        }
+
+        return null;
     }
 
     /**

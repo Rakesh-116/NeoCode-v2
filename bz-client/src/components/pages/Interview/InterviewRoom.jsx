@@ -79,6 +79,104 @@ const InterviewRoom = () => {
         (currentQuestion?.questionType || "").toLowerCase() === "coding" ||
         looksLikeCodingQuestion(currentQuestion?.question);
 
+    const getQuestionMeta = () => {
+        const meta = currentQuestion?.questionMeta || {};
+        const conceptTags =
+            currentQuestion?.conceptTags ||
+            meta.conceptTags ||
+            [];
+        const followUps = meta.followUps || [];
+        const evaluationCriteria =
+            currentQuestion?.validationCriteria?.evaluation_criteria ||
+            meta.evaluationCriteria ||
+            null;
+        const topic = meta.topic || currentQuestion?.topic || null;
+
+        return {
+            topic,
+            conceptTags,
+            followUps,
+            evaluationCriteria,
+        };
+    };
+
+    const getQuestionText = () => {
+        const text = currentQuestion?.question;
+        if (!text || typeof text !== "string") return "";
+        const trimmed = text.trim();
+        if (trimmed.startsWith("{") && trimmed.includes('"question"')) {
+            try {
+                let candidate = trimmed;
+                const firstBrace = candidate.indexOf("{");
+                const lastBrace = candidate.lastIndexOf("}");
+                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                    candidate = candidate.slice(firstBrace, lastBrace + 1);
+                }
+                candidate = candidate.replace(/[“”]/g, "\"").replace(/[‘’]/g, "'");
+
+                let out = "";
+                let inString = false;
+                let escaped = false;
+                for (let i = 0; i < candidate.length; i += 1) {
+                    const ch = candidate[i];
+                    if (escaped) {
+                        out += ch;
+                        escaped = false;
+                        continue;
+                    }
+                    if (ch === "\\") {
+                        out += ch;
+                        escaped = true;
+                        continue;
+                    }
+                    if (ch === "\"") {
+                        out += ch;
+                        inString = !inString;
+                        continue;
+                    }
+                    if (!inString && (ch === "{" || ch === ",")) {
+                        out += ch;
+                        let j = i + 1;
+                        while (j < candidate.length && /\s/.test(candidate[j])) {
+                            out += candidate[j];
+                            j += 1;
+                        }
+                        if (candidate[j] === "\"") {
+                            i = j - 1;
+                            continue;
+                        }
+                        const keyStart = j;
+                        while (j < candidate.length && /[A-Za-z0-9_]/.test(candidate[j])) {
+                            j += 1;
+                        }
+                        const key = candidate.slice(keyStart, j);
+                        if (key.length > 0) {
+                            let k = j;
+                            while (k < candidate.length && /\s/.test(candidate[k])) {
+                                k += 1;
+                            }
+                            if (candidate[k] === ":") {
+                                out += `"${key}"`;
+                                i = j - 1;
+                                continue;
+                            }
+                        }
+                    }
+                    out += ch;
+                }
+
+                out = out.replace(/,\s*([}\]])/g, "$1").trim();
+                const parsed = JSON.parse(out);
+                if (parsed?.question) {
+                    return parsed.question;
+                }
+            } catch (error) {
+                return text;
+            }
+        }
+        return text;
+    };
+
     useEffect(() => {
         if (!jwtToken) {
             navigate("/login");
@@ -146,10 +244,15 @@ const InterviewRoom = () => {
             const existingQuestion = allQuestions.find((q) => q.turnNumber === turnNumber);
 
             if (existingQuestion) {
+                const shouldIncludeAudio = true;
+
                 // Load the specific question with audio
-                const response = await axios.get(`${API_BASE_URL}/api/interview/${sessionId}/question/${turnNumber}`, {
-                    headers: { Authorization: `Bearer ${jwtToken}` },
-                });
+                const response = await axios.get(
+                    `${API_BASE_URL}/api/interview/${sessionId}/question/${turnNumber}?includeAudio=${shouldIncludeAudio}`,
+                    {
+                        headers: { Authorization: `Bearer ${jwtToken}` },
+                    },
+                );
 
                 setCurrentQuestion(response.data.question);
                 setCurrentTurn(response.data.question.turnId);
@@ -453,10 +556,48 @@ const InterviewRoom = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="bg-white/5 border border-white/10 rounded-lg p-8"
                             >
-                                <div className="mb-6">
-                                    <div className="text-sm text-white/60 mb-2">Question {currentTurnNumber}</div>
-                                    <h3 className="text-2xl font-bold mb-4">{currentQuestion.question}</h3>
-                                </div>
+                                    <div className="mb-6">
+                                        <div className="text-sm text-white/60 mb-2">Question {currentTurnNumber}</div>
+                                    <h3 className="text-2xl font-bold mb-4">{getQuestionText()}</h3>
+                                    </div>
+
+                                {(() => {
+                                    const meta = getQuestionMeta();
+                                    const hasMeta =
+                                        meta.topic ||
+                                        (meta.conceptTags && meta.conceptTags.length > 0) ||
+                                        (meta.followUps && meta.followUps.length > 0) ||
+                                        meta.evaluationCriteria;
+                                    if (!hasMeta) return null;
+                                    return (
+                                        <div className="bg-white/10 border border-white/20 rounded-lg p-4 mb-6">
+                                            <div className="text-sm text-white/60 mb-2">Interview Metadata</div>
+                                            {meta.topic && (
+                                                <div className="text-white/90 mb-2">
+                                                    <span className="text-white/60">Topic:</span> {meta.topic}
+                                                </div>
+                                            )}
+                                            {meta.evaluationCriteria && (
+                                                <div className="text-white/90 mb-2">
+                                                    <span className="text-white/60">Evaluation Criteria:</span>{" "}
+                                                    {meta.evaluationCriteria}
+                                                </div>
+                                            )}
+                                            {meta.conceptTags && meta.conceptTags.length > 0 && (
+                                                <div className="text-white/90 mb-2">
+                                                    <span className="text-white/60">Concept Tags:</span>{" "}
+                                                    {meta.conceptTags.join(", ")}
+                                                </div>
+                                            )}
+                                            {meta.followUps && meta.followUps.length > 0 && (
+                                                <div className="text-white/90">
+                                                    <span className="text-white/60">Suggested Follow-ups:</span>{" "}
+                                                    {meta.followUps.join(" • ")}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Audio Player */}
                                 {currentQuestion.audio && (

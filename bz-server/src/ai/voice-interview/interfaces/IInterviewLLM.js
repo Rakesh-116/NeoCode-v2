@@ -28,6 +28,10 @@
  * @property {string} question - Question text
  * @property {string} type - 'technical' | 'behavioral' | 'system_design' | 'coding'
  * @property {string} difficulty - 'easy', 'medium', 'hard'
+ * @property {string} [topic] - Specific topic label (e.g., 'React internals')
+ * @property {Array<string>} [followUps] - Suggested follow-up questions
+ * @property {string} [evaluationCriteria] - Criteria used to evaluate the answer
+ * @property {Array<string>} [conceptTags] - Concept tags for learning review
  * @property {Array<string>} expectedKeywords - Keywords expected in answer
  * @property {Object} [metadata] - Additional question metadata
  */
@@ -39,6 +43,7 @@
  * @property {string} topic - Topic/skill area
  * @property {string} difficulty - Question difficulty
  * @property {number} [timeToAnswer] - Time taken in seconds
+ * @property {string} [evaluationCriteria] - Specific evaluation criteria
  */
 
 /**
