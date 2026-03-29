@@ -4,9 +4,7 @@
  */
 
 import IEvaluationPlugin from "../interfaces/IEvaluationPlugin.js";
-import executeJavaCode from "../../controllers/compilers/executeJavaCode.controller.js";
-import executePythonCode from "../../controllers/compilers/executePythonCode.controller.js";
-import executeCppCode from "../../controllers/compilers/executeCppCode.controller.js";
+import { execute } from "../../execution/index.js";
 import { pool } from "../../database/connect.db.js";
 
 /**
@@ -136,7 +134,7 @@ class CodeEvaluationPlugin extends IEvaluationPlugin {
             let totalExecutionTime = 0;
 
             for (const test of testCasesResult.rows) {
-                const result = await executor(sourceCode, test.testcase.input, test.id);
+                const result = await executor(sourceCode, language, test.testcase.input, test.id);
 
                 const verdict = this.determineVerdict(result, test.testcase.output);
                 const passed = verdict === "ACCEPTED";
@@ -405,12 +403,12 @@ class CodeEvaluationPlugin extends IEvaluationPlugin {
     getExecutor(language) {
         switch (language.toLowerCase()) {
             case "java":
-                return executeJavaCode;
+                return execute;
             case "python":
-                return executePythonCode;
+                return execute;
             case "cpp":
             case "c++":
-                return executeCppCode;
+                return execute;
             default:
                 throw new Error(`Unsupported language: ${language}`);
         }

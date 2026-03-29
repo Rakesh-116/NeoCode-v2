@@ -11,7 +11,7 @@
  * - Course completion → Validate skill achievement
  */
 
-import pool from "../database/connect.db.js";
+import { pool } from "../database/connect.db.js";
 import SkillManagementService from "../learning-core/services/skillManagement.service.js";
 import ValidationEngineService from "../learning-core/services/validationEngine.service.js";
 

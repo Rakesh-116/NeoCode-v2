@@ -13,6 +13,10 @@ const config = {
     CPP_CONTAINER_NAME: get("CPP_CONTAINER_NAME", "cpp-container"),
     // worker directories (relative to this file's parent 'src')
     WORKERS_DIR: get("WORKERS_DIR", "src/workers"),
+    // Code execution provider
+    CODE_EXECUTION_PROVIDER: get("CODE_EXECUTION_PROVIDER", "docker"),
+    JUDGE0_BASE_URL: get("JUDGE0_BASE_URL", ""),
+    JUDGE0_API_KEY: get("JUDGE0_API_KEY", ""),
 
     // AI/LLM Configuration
     AI: {

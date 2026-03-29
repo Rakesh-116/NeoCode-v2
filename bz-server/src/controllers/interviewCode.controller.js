@@ -1,7 +1,5 @@
 import { pool } from "../database/connect.db.js";
-import executeJavaCode from "./compilers/executeJavaCode.controller.js";
-import executePythonCode from "./compilers/executePythonCode.controller.js";
-import executeCppCode from "./compilers/executeCppCode.controller.js";
+import { execute } from "../execution/index.js";
 
 const MAX_SOURCE_CODE_CHARS = 200_000;
 const MAX_STDIN_CHARS = 50_000;
@@ -58,9 +56,9 @@ const verifyTurnInSession = async (turnId, sessionId) => {
 
 const getExecutor = (languageRaw) => {
     const language = (languageRaw || "").toLowerCase();
-    if (language === "java") return executeJavaCode;
-    if (language === "python") return executePythonCode;
-    if (language === "cpp") return executeCppCode;
+    if (language === "java") return execute;
+    if (language === "python") return execute;
+    if (language === "cpp") return execute;
     return null;
 };
 
@@ -113,7 +111,7 @@ export const executeInterviewCode = async (req, res) => {
         }
 
         const sandboxKey = `interview_${sessionId}_${turnId}_${userId}`;
-        const result = await executeCode(sourceCode, input || "", sandboxKey);
+        const result = await executeCode(sourceCode, language, input || "", sandboxKey);
 
         return res.status(200).json({ success: true, output: result.output });
     } catch (error) {
@@ -191,7 +189,7 @@ export const submitInterviewCode = async (req, res) => {
             verdict = "ACCEPTED";
 
             for (const test of tcResult.rows) {
-                const result = await executeCode(sourceCode, test.testcase.input, test.id);
+                const result = await executeCode(sourceCode, language, test.testcase.input, test.id);
                 let tVerdict;
 
                 if (result.error) {

@@ -541,6 +541,7 @@ NeoMentor is:
 - [x] Goal tracking system (`user_goals` table + GoalTracking service)
 - [x] Training plans (`training_plans` + `training_plan_items` tables with dependency tracking)
 - [x] Plugin registry system (`plugin_registry` table for extensible evaluation plugins)
+- [x] Pluggable code execution providers (Docker + Judge0 via execution router)
 - [ ] **Interview Multi-Attempt System** (NOT IMPLEMENTED ❌)
     - Session-wise attempts tracking across same topic
     - Attempt history with version comparison (attempt 1 vs 2 vs 3)
@@ -950,6 +951,3 @@ Week 11-12: VR Integration
 
 > **"Every user who sets a goal and follows NeoMentor's plan should measurably level up their skills and move closer to their dream role within 12 weeks."**
 
-That's the vision.
-
-Now let's build it. 🚀

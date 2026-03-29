@@ -1,7 +1,5 @@
 import { pool } from "../database/connect.db.js";
-import executeJavaCode from "./compilers/executeJavaCode.controller.js";
-import executePythonCode from "./compilers/executePythonCode.controller.js";
-import executeCppCode from "./compilers/executeCppCode.controller.js";
+import { execute } from "../execution/index.js";
 import EvaluationService from "../learning-core/services/evaluation.service.js";
 import CourseIntegrationService from "../services/courseIntegration.service.js";
 
@@ -17,15 +15,15 @@ const executeProblemController = async (req, res) => {
         const userId = req.userId;
 
         if (typeof language === "string" && language.toLowerCase() === "java") {
-            const result = await executeJavaCode(sourceCode, input, `sample_${userId}`);
+            const result = await execute(sourceCode, language, input, `sample_${userId}`);
             console.log(result.output);
             return result.success ? res.status(200).json(result) : res.status(402).json(result);
         } else if (typeof language === "string" && language.toLowerCase() === "python") {
-            const result = await executePythonCode(sourceCode, input, `sample_${userId}`);
+            const result = await execute(sourceCode, language, input, `sample_${userId}`);
             console.log(result);
             return result.success ? res.status(200).json(result) : res.status(402).json(result);
         } else if (typeof language === "string" && language.toLowerCase() === "cpp") {
-            const result = await executeCppCode(sourceCode, input, `sample_${userId}`);
+            const result = await execute(sourceCode, language, input, `sample_${userId}`);
             console.log(result);
             return result.success ? res.status(200).json(result) : res.status(402).json(result);
         } else {
@@ -66,11 +64,11 @@ const submitProblemController = async (req, res) => {
 
             let executeCode = null;
             if (typeof language === "string" && language.toLowerCase() === "java") {
-                executeCode = executeJavaCode;
+                executeCode = execute;
             } else if (typeof language === "string" && language.toLowerCase() === "python") {
-                executeCode = executePythonCode;
+                executeCode = execute;
             } else if (typeof language === "string" && language.toLowerCase() === "cpp") {
-                executeCode = executeCppCode;
+                executeCode = execute;
             } else {
                 executeCode = null;
                 return res.status(400).json({ success: false, message: "Unsupported language" });
@@ -79,7 +77,7 @@ const submitProblemController = async (req, res) => {
             if (executeCode != null) {
                 let testResults = [];
                 for (const test of hiddenTestcases) {
-                    const result = await executeCode(sourceCode, test.testcase.input, test.id);
+                    const result = await executeCode(sourceCode, language, test.testcase.input, test.id);
                     // console.log("result luffy: ", result);
                     // console.log(test);
                     // console.log(test.testcase.input);
@@ -518,14 +516,14 @@ const getExpectedOutputController = async (req, res) => {
         const { solution, solution_language } = getSolutionResult.rows[0];
 
         if (typeof solution_language === "string" && solution_language.toLowerCase() === "java") {
-            const result = await executeJavaCode(solution, input, `sample_${userId}`);
+            const result = await execute(solution, solution_language, input, `sample_${userId}`);
             return res.json(result);
         } else if (typeof solution_language === "string" && solution_language.toLowerCase() === "python") {
-            const result = await executePythonCode(solution, input, `sample_${userId}`);
+            const result = await execute(solution, solution_language, input, `sample_${userId}`);
             console.log(result);
             return res.json(result);
         } else if (typeof solution_language === "string" && solution_language.toLowerCase() === "cpp") {
-            const result = await executeCppCode(solution, input, `sample_${userId}`);
+            const result = await execute(solution, solution_language, input, `sample_${userId}`);
             console.log(result);
             return res.json(result);
         } else {
