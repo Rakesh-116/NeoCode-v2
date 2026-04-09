@@ -24,7 +24,7 @@ const router = express.Router();
 /**
  * AI Coach - Get personalized learning coaching
  * GET /api/ai/coach
- * Query params: ?provider=local|openai|gemini (optional)
+ * Query params: ?provider=local|openai|gemini|groq (optional)
  */
 router.get("/coach", userAuthentication, getAICoaching);
 

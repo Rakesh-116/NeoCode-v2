@@ -23,6 +23,37 @@ class InterviewOrchestrator {
     constructor() {
         this.activeSessions = new Map(); // In-memory session cache
     }
+
+    async _ensureRetakeSchema(client) {
+        await client.query(`
+            ALTER TABLE public.interview_sessions
+            ADD COLUMN IF NOT EXISTS retake_of_session_id UUID
+        `);
+
+        await client.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'interview_sessions_retake_of_fkey'
+                      AND conrelid = 'public.interview_sessions'::regclass
+                ) THEN
+                    ALTER TABLE public.interview_sessions
+                    ADD CONSTRAINT interview_sessions_retake_of_fkey
+                    FOREIGN KEY (retake_of_session_id)
+                    REFERENCES public.interview_sessions(id)
+                    ON DELETE SET NULL;
+                END IF;
+            END $$;
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_interview_sessions_retake_of
+            ON public.interview_sessions (retake_of_session_id)
+        `);
+    }
+
     _parseQuestionPayload(rawText) {
         if (!rawText || typeof rawText !== "string") {
             return { parsed: null, questionText: rawText };
@@ -166,6 +197,10 @@ class InterviewOrchestrator {
                 throw new Error("Required providers not available. Check provider registry.");
             }
 
+            console.log(
+                `[InterviewOrchestrator] Using providers -> STT: ${sttProvider.name}, TTS: ${ttsProvider.name}, Interview LLM: ${llmProvider.name}`,
+            );
+
             // Create session in database
             const sessionId = uuidv4();
             const result = await client.query(
@@ -217,6 +252,7 @@ class InterviewOrchestrator {
                 previousQuestions: [],
                 previousAnswers: [],
             };
+            let generatedQuestionCount = 0;
 
             for (let i = 1; i <= validatedTargetQuestions; i++) {
                 try {
@@ -382,6 +418,7 @@ class InterviewOrchestrator {
 
                     // Add to context for next question (avoid duplicates)
                     context.previousQuestions.push(generatedQuestion.question);
+                    generatedQuestionCount += 1;
 
                     console.log(`[InterviewOrchestrator] ? Question ${i}/${validatedTargetQuestions} generated`);
                 } catch (error) {
@@ -390,10 +427,33 @@ class InterviewOrchestrator {
                 }
             }
 
-            // Update session's current_question_number to 0 (no question answered yet)
-            await client.query(`UPDATE interview_sessions SET current_question_number = 0 WHERE id = $1`, [sessionId]);
+            if (generatedQuestionCount === 0) {
+                await client.query("DELETE FROM interview_sessions WHERE id = $1", [sessionId]);
+                this.activeSessions.delete(sessionId);
+                const err = new Error(
+                    "Failed to generate interview questions. Please ensure the interview LLM provider is available and try again.",
+                );
+                err.statusCode = 503;
+                throw err;
+            }
 
-            console.log(`[InterviewOrchestrator] ? All ${validatedTargetQuestions} questions pre-generated`);
+            // Align the persisted session state with the actual number of generated turns.
+            await client.query(
+                `UPDATE interview_sessions
+                 SET current_question_number = 0, target_questions = $2
+                 WHERE id = $1`,
+                [sessionId, generatedQuestionCount],
+            );
+
+            const cachedSession = this.activeSessions.get(sessionId);
+            if (cachedSession) {
+                cachedSession.current_question_number = 0;
+                cachedSession.target_questions = generatedQuestionCount;
+            }
+
+            console.log(
+                `[InterviewOrchestrator] ? Generated ${generatedQuestionCount}/${validatedTargetQuestions} questions successfully`,
+            );
 
             return {
                 sessionId: session.id,
@@ -401,6 +461,7 @@ class InterviewOrchestrator {
                 topic: session.topic,
                 targetRole: session.target_role,
                 difficulty: session.difficulty,
+                targetQuestions: generatedQuestionCount,
                 status: session.status,
                 startedAt: session.started_at,
             };
@@ -442,11 +503,33 @@ class InterviewOrchestrator {
             );
 
             if (turnResult.rows.length === 0) {
-                // No more unanswered questions
-                const targetQuestionCount = session.target_questions || 5;
-                throw new Error(
-                    `Interview complete! You've answered all ${targetQuestionCount} questions. Please end the interview.`,
+                const progressResult = await client.query(
+                    `
+                    SELECT
+                        COUNT(*)::int AS total_turns,
+                        COUNT(*) FILTER (WHERE user_answer_text IS NOT NULL)::int AS answered_turns
+                    FROM interview_turns
+                    WHERE session_id = $1
+                `,
+                    [sessionId],
                 );
+
+                const totalTurns = progressResult.rows[0]?.total_turns || 0;
+                const answeredTurns = progressResult.rows[0]?.answered_turns || 0;
+
+                if (totalTurns === 0) {
+                    const err = new Error(
+                        "No interview questions are available for this session. Please restart the interview after the LLM provider is available.",
+                    );
+                    err.statusCode = 503;
+                    throw err;
+                }
+
+                const err = new Error(
+                    `Interview complete! You've answered all ${answeredTurns || totalTurns} questions. Please end the interview.`,
+                );
+                err.statusCode = 409;
+                throw err;
             }
 
             const turn = turnResult.rows[0];
@@ -738,6 +821,168 @@ class InterviewOrchestrator {
     }
 
     /**
+     * Create a retake session by cloning an existing session's setup and turns.
+     * @param {string} sessionId - Original session ID
+     * @param {string} userId - Current user ID
+     * @returns {Promise<Object>} New session payload
+     */
+    async retakeSession(sessionId, userId) {
+        const client = await pool.connect();
+
+        try {
+            await client.query("BEGIN");
+            await this._ensureRetakeSchema(client);
+
+            const sourceResult = await client.query(
+                `
+                SELECT *
+                FROM interview_sessions
+                WHERE id = $1 AND user_id = $2
+            `,
+                [sessionId, userId],
+            );
+
+            if (sourceResult.rows.length === 0) {
+                const err = new Error("Interview session not found");
+                err.statusCode = 404;
+                throw err;
+            }
+
+            const sourceSession = sourceResult.rows[0];
+
+            if (sourceSession.session_mode === "smart_review") {
+                const err = new Error("Smart review sessions cannot be retaken from the interview summary.");
+                err.statusCode = 400;
+                throw err;
+            }
+
+            const turnsResult = await client.query(
+                `
+                SELECT
+                    turn_number,
+                    question_text,
+                    question_type,
+                    question_difficulty,
+                    requires_code_editor,
+                    problem_id,
+                    concept_tags,
+                    validation_criteria,
+                    llm_metadata
+                FROM interview_turns
+                WHERE session_id = $1
+                ORDER BY turn_number ASC
+            `,
+                [sessionId],
+            );
+
+            if (turnsResult.rows.length === 0) {
+                const err = new Error("This interview has no questions to retake.");
+                err.statusCode = 400;
+                throw err;
+            }
+
+            const newSessionId = uuidv4();
+            const targetQuestions = turnsResult.rows.length;
+            const sessionMetadata = {
+                ...(sourceSession.session_metadata || {}),
+                retakeOfSessionId: sourceSession.id,
+                retakeCreatedAt: new Date().toISOString(),
+            };
+
+            const insertSessionResult = await client.query(
+                `
+                INSERT INTO interview_sessions (
+                    id, user_id, session_mode, topic, difficulty, target_questions,
+                    target_role, job_description, resume_text,
+                    stt_provider, tts_provider, llm_provider,
+                    status, started_at, current_question_number, total_questions, overall_score,
+                    session_metadata, retake_of_session_id
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6,
+                    $7, $8, $9,
+                    $10, $11, $12,
+                    'active', NOW(), 0, 0, 0,
+                    $13::jsonb, $14
+                )
+                RETURNING *
+            `,
+                [
+                    newSessionId,
+                    userId,
+                    sourceSession.session_mode,
+                    sourceSession.topic,
+                    sourceSession.difficulty,
+                    targetQuestions,
+                    sourceSession.target_role,
+                    sourceSession.job_description,
+                    sourceSession.resume_text,
+                    sourceSession.stt_provider,
+                    sourceSession.tts_provider,
+                    sourceSession.llm_provider,
+                    JSON.stringify(sessionMetadata),
+                    sourceSession.id,
+                ],
+            );
+
+            for (const turn of turnsResult.rows) {
+                await client.query(
+                    `
+                    INSERT INTO interview_turns (
+                        session_id, turn_number, question_text,
+                        question_type, question_difficulty, requires_code_editor, problem_id,
+                        concept_tags, validation_criteria, llm_metadata, question_generated_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, NOW())
+                `,
+                    [
+                        newSessionId,
+                        turn.turn_number,
+                        turn.question_text,
+                        turn.question_type,
+                        turn.question_difficulty,
+                        turn.requires_code_editor,
+                        turn.problem_id,
+                        JSON.stringify(turn.concept_tags || []),
+                        JSON.stringify(turn.validation_criteria || {}),
+                        JSON.stringify(turn.llm_metadata || {}),
+                    ],
+                );
+            }
+
+            await client.query("COMMIT");
+
+            const sttProvider = await voiceProviderRegistry.get("stt", sourceSession.stt_provider);
+            const ttsProvider = await voiceProviderRegistry.get("tts", sourceSession.tts_provider);
+            const llmProvider = await voiceProviderRegistry.get("llm_interview", sourceSession.llm_provider);
+
+            this.activeSessions.set(newSessionId, {
+                ...insertSessionResult.rows[0],
+                providers: { stt: sttProvider, tts: ttsProvider, llm: llmProvider },
+                questionHistory: [],
+            });
+
+            return {
+                sessionId: newSessionId,
+                mode: sourceSession.session_mode,
+                topic: sourceSession.topic,
+                targetRole: sourceSession.target_role,
+                difficulty: sourceSession.difficulty,
+                targetQuestions,
+                status: "active",
+                startedAt: insertSessionResult.rows[0].started_at,
+                retakeOfSessionId: sourceSession.id,
+            };
+        } catch (error) {
+            await client.query("ROLLBACK");
+            console.error("[InterviewOrchestrator] Failed to retake session:", error.message);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
      * Get session from cache or database
      * @private
      * @param {string} sessionId - Session ID
@@ -774,6 +1019,10 @@ class InterviewOrchestrator {
             providers: { stt, tts, llm },
             questionHistory: historyResult.rows,
         };
+
+        console.log(
+            `[InterviewOrchestrator] Loaded session ${sessionId} providers -> STT: ${stt?.name || session.stt_provider}, TTS: ${tts?.name || session.tts_provider}, Interview LLM: ${llm?.name || session.llm_provider}`,
+        );
 
         // Cache it
         this.activeSessions.set(sessionId, enhancedSession);

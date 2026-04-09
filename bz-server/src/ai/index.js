@@ -5,7 +5,7 @@
  * Central export point for NeoCode AI infrastructure.
  *
  * This module provides:
- * - LLM provider registry (Ollama, OpenAI, Gemini)
+ * - LLM provider registry (Ollama, OpenAI, Gemini, Groq)
  * - LLM Gateway service (multi-purpose AI router)
  * - Easy provider swapping with minimal config changes
  *
@@ -32,6 +32,7 @@ import config from "../config/index.js";
 import OllamaProvider from "./providers/OllamaProvider.js";
 import OpenAIProvider from "./providers/OpenAIProvider.js";
 import GeminiProvider from "./providers/GeminiProvider.js";
+import GroqProvider from "./providers/GroqProvider.js";
 
 // Import gateway
 import LLMGateway from "./llmGateway.service.js";
@@ -44,6 +45,7 @@ const providers = {
     local: new OllamaProvider(),
     openai: new OpenAIProvider(),
     gemini: new GeminiProvider(),
+    groq: new GroqProvider(),
 };
 
 /**
@@ -109,4 +111,4 @@ export default llmGateway;
 /**
  * Named exports for advanced usage
  */
-export { llmGateway, providers, OllamaProvider, OpenAIProvider, GeminiProvider };
+export { llmGateway, providers, OllamaProvider, OpenAIProvider, GeminiProvider, GroqProvider };

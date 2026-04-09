@@ -8,7 +8,12 @@ import { pool } from "../database/connect.db.js";
 import voiceProviderRegistry from "../ai/voice-interview/providers/ProviderRegistry.js";
 import { v4 as uuidv4 } from "uuid";
 import { createProblemWithTestcases } from "../services/problemAdmin.service.js";
-import { getDueCards, updateCardsForConcepts, getSmartReviewStats as loadSmartReviewStats } from "../services/spacedRepetition.service.js";
+import {
+    ensureSmartReviewSchema,
+    getDueCards,
+    updateCardsForConcepts,
+    getSmartReviewStats as loadSmartReviewStats,
+} from "../services/spacedRepetition.service.js";
 
 const difficultyFromScore = (score) => {
     const numeric = Number.isFinite(score) ? score : 50;
@@ -170,6 +175,7 @@ export const startSmartReview = async (req, res) => {
     const client = await pool.connect();
     try {
         const userId = req.userId;
+        await ensureSmartReviewSchema();
         const dueCards = await getDueCards(userId, 10);
 
         if (dueCards.length === 0) {

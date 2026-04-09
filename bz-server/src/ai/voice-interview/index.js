@@ -23,6 +23,7 @@ import voiceProviderRegistry from "./providers/ProviderRegistry.js";
 import WhisperSTTProvider from "./providers/WhisperSTTProvider.js";
 import PiperTTSProvider from "./providers/PiperTTSProvider.js";
 import OllamaInterviewLLM from "./providers/OllamaInterviewLLM.js";
+import GroqInterviewLLM from "./providers/GroqInterviewLLM.js";
 
 // Services
 import interviewOrchestrator from "./services/InterviewOrchestrator.service.js";
@@ -100,6 +101,7 @@ export {
     WhisperSTTProvider,
     PiperTTSProvider,
     OllamaInterviewLLM,
+    GroqInterviewLLM,
 
     // Services
     interviewOrchestrator,

@@ -26,7 +26,7 @@ const config = {
         ENABLE_AI_CODE_REVIEW: get("ENABLE_AI_CODE_REVIEW", "true") === "true",
         ENABLE_AI_SUPPORT: get("ENABLE_AI_SUPPORT", "true") === "true",
 
-        // Default provider (local, openai, gemini)
+        // Default provider (local, openai, gemini, groq)
         DEFAULT_PROVIDER: get("AI_DEFAULT_PROVIDER", "local"),
 
         // LLM request configuration
@@ -52,6 +52,13 @@ const config = {
             API_KEY: get("GEMINI_API_KEY", ""),
             MODEL: get("GEMINI_MODEL", "gemini-2.0-flash"),
             TEMPERATURE: parseFloat(get("GEMINI_TEMPERATURE", "0.2")),
+        },
+
+        GROQ: {
+            API_KEY: get("GROQ_API_KEY", ""),
+            MODEL: get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            TEMPERATURE: parseFloat(get("GROQ_TEMPERATURE", "0.2")),
+            BASE_URL: get("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
         },
     },
 };

@@ -8,6 +8,7 @@ import { pool } from "../database/connect.db.js";
 
 const dueCache = new Map();
 const ONE_HOUR_MS = 60 * 60 * 1000;
+let smartReviewSchemaPromise = null;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -82,6 +83,77 @@ export const invalidateDueCache = (userId) => {
     dueCache.delete(userId);
 };
 
+export const ensureSmartReviewSchema = async () => {
+    if (!smartReviewSchemaPromise) {
+        smartReviewSchemaPromise = (async () => {
+            const client = await pool.connect();
+            try {
+                await client.query("BEGIN");
+
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        IF EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'interview_sessions_session_mode_check'
+                              AND conrelid = 'public.interview_sessions'::regclass
+                        ) THEN
+                            ALTER TABLE public.interview_sessions
+                                DROP CONSTRAINT interview_sessions_session_mode_check;
+                        END IF;
+                    END $$;
+                `);
+
+                await client.query(`
+                    ALTER TABLE public.interview_sessions
+                        ADD CONSTRAINT interview_sessions_session_mode_check
+                        CHECK (session_mode IN ('topic', 'role', 'smart_review'));
+                `).catch(async (error) => {
+                    if (!String(error.message || "").includes("already exists")) {
+                        throw error;
+                    }
+                });
+
+                await client.query(`
+                    CREATE TABLE IF NOT EXISTS public.interview_cards (
+                        id uuid DEFAULT gen_random_uuid() NOT NULL,
+                        user_id uuid NOT NULL,
+                        concept_tag text NOT NULL,
+                        ease_factor numeric(3,2) NOT NULL DEFAULT 2.50,
+                        interval_days integer NOT NULL DEFAULT 1,
+                        repetitions integer NOT NULL DEFAULT 0,
+                        consecutive_easy_count integer NOT NULL DEFAULT 0,
+                        next_review_date date NOT NULL DEFAULT CURRENT_DATE,
+                        last_score integer,
+                        last_reviewed_at timestamp without time zone,
+                        created_at timestamp without time zone DEFAULT now(),
+                        CONSTRAINT interview_cards_pkey PRIMARY KEY (id),
+                        CONSTRAINT interview_cards_user_id_fkey
+                            FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
+                        CONSTRAINT interview_cards_user_concept_unique UNIQUE (user_id, concept_tag)
+                    );
+                `);
+
+                await client.query(`
+                    CREATE INDEX IF NOT EXISTS idx_interview_cards_due
+                    ON public.interview_cards (user_id, next_review_date);
+                `);
+
+                await client.query("COMMIT");
+            } catch (error) {
+                await client.query("ROLLBACK");
+                smartReviewSchemaPromise = null;
+                throw error;
+            } finally {
+                client.release();
+            }
+        })();
+    }
+
+    return smartReviewSchemaPromise;
+};
+
 export const getDueCards = async (userId, limit) => {
     if (!userId) {
         throw new Error("User id is required");
@@ -89,6 +161,8 @@ export const getDueCards = async (userId, limit) => {
     if (!Number.isFinite(limit)) {
         throw new Error("Limit is required");
     }
+
+    await ensureSmartReviewSchema();
 
     const cached = dueCache.get(userId);
     if (cached && Date.now() - cached.timestamp < ONE_HOUR_MS) {
@@ -128,6 +202,8 @@ export const updateCardsForConcepts = async (userId, conceptScores) => {
     if (!Array.isArray(conceptScores)) {
         throw new Error("conceptScores must be an array");
     }
+
+    await ensureSmartReviewSchema();
 
     const now = new Date();
 
@@ -201,6 +277,8 @@ export const getSmartReviewStats = async (userId) => {
     if (!userId) {
         throw new Error("User id is required");
     }
+
+    await ensureSmartReviewSchema();
 
     const totals = await pool.query(
         `

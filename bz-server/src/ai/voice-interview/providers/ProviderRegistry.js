@@ -18,6 +18,7 @@ import { pool } from "../../../database/connect.db.js";
 import WhisperSTTProvider from "./WhisperSTTProvider.js";
 import PiperTTSProvider from "./PiperTTSProvider.js";
 import OllamaInterviewLLM from "./OllamaInterviewLLM.js";
+import GroqInterviewLLM from "./GroqInterviewLLM.js";
 
 class VoiceProviderRegistry {
     constructor() {
@@ -76,6 +77,10 @@ class VoiceProviderRegistry {
         // Interview LLM: Ollama
         const ollamaLLM = new OllamaInterviewLLM();
         this.register("llm_interview", "ollama", ollamaLLM);
+
+        // Interview LLM: Groq
+        const groqLLM = new GroqInterviewLLM();
+        this.register("llm_interview", "groq", groqLLM);
 
         console.log("[VoiceProviderRegistry] Default providers registered");
     }
@@ -159,6 +164,18 @@ class VoiceProviderRegistry {
      */
     async getDefault(type) {
         try {
+            const envOverride =
+                type === "llm_interview"
+                    ? process.env.AI_INTERVIEW_PROVIDER || process.env.INTERVIEW_LLM_PROVIDER || process.env.AI_DEFAULT_PROVIDER
+                    : null;
+
+            if (envOverride) {
+                const envProvider = this.get(type, String(envOverride).toLowerCase());
+                if (envProvider) {
+                    return envProvider;
+                }
+            }
+
             // Check database for default
             const result = await pool.query(
                 `
@@ -172,7 +189,10 @@ class VoiceProviderRegistry {
 
             if (result.rows.length > 0) {
                 const name = result.rows[0].provider_name;
-                return this.get(type, name);
+                const dbProvider = this.get(type, name);
+                if (dbProvider) {
+                    return dbProvider;
+                }
             }
 
             // Fallback: return first available
