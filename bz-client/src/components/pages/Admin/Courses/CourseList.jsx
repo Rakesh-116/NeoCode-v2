@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { FaArrowLeft } from "react-icons/fa";
 
 import Header from "../../Header.jsx";
 import Breadcrumb from "../../../Common/Breadcrumb";
@@ -13,6 +12,13 @@ const CourseList = () => {
   const [loading, setLoading] = useState(true);
 
   const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+
+  const formatPrice = (amount, currency = "eur") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format((amount || 0) / 100);
+  };
 
   // Fetch courses from backend
   const fetchCourses = async () => {
@@ -65,7 +71,18 @@ const CourseList = () => {
                 key={course.id}
                 className="p-6 border border-white/30 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
               >
-                <h2 className="text-xl font-semibold mb-2">{course.title}</h2>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <h2 className="text-xl font-semibold">{course.title}</h2>
+                  <span
+                    className={`shrink-0 px-2 py-1 rounded-md text-xs border ${
+                      course.is_paid
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/20"
+                        : "bg-blue-500/15 text-blue-300 border-blue-400/20"
+                    }`}
+                  >
+                    {course.is_paid ? formatPrice(course.price_amount, course.price_currency) : "Free"}
+                  </span>
+                </div>
                 <p className="text-white/70 mb-4">{course.description || "No description provided."}</p>
                 <p className="text-white/70 mb-4">
                   Category: <span className="font-medium">{course.category}</span>
@@ -74,6 +91,9 @@ const CourseList = () => {
                   Problems: <span className="font-medium">{course.total_problems}</span> | 
                   Points: <span className="font-medium">{course.total_points}</span>
                 </p>
+                {course.is_paid && (
+                  <p className="text-emerald-300/80 text-sm mb-4">SEPA Direct Debit checkout enabled</p>
+                )}
                 <button
                   onClick={() => navigate(`/admin/courses/${course.id}`)}
                   className="px-4 py-2 border border-white/30 rounded-lg hover:bg-blue-500 hover:text-white transition-all"

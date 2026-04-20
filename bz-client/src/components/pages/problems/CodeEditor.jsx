@@ -325,6 +325,7 @@ const CodeEditor = ({
         {
           problemId,
           input: selectedInputValue,
+          ...(courseId ? { courseId } : {}),
         },
         {
           headers: {

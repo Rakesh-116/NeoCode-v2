@@ -1,7 +1,20 @@
 import { pool } from "../database/connect.db.js";
 
 const createCourseController = async (req, res) => {
-  const { title, category, description, problems } = req.body;
+  const {
+    title,
+    category,
+    description,
+    problems,
+    is_paid = false,
+    price_amount = 0,
+    price_currency = "eur",
+    access_type,
+  } = req.body;
+  const normalizedIsPaid = Boolean(is_paid);
+  const normalizedPriceAmount = normalizedIsPaid ? Number(price_amount) || 0 : 0;
+  const normalizedCurrency = (price_currency || "eur").toLowerCase();
+  const normalizedAccessType = access_type || (normalizedIsPaid ? "paid" : "free");
 
   if (!title || !category || !problems || problems.length === 0) {
     return res.status(400).json({
@@ -10,9 +23,16 @@ const createCourseController = async (req, res) => {
     });
   }
 
+  if (normalizedIsPaid && normalizedPriceAmount <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid price for paid courses",
+    });
+  }
+
   const createCourseQuery = `
-    INSERT INTO courses (title, category, description)
-    VALUES ($1, $2, $3) RETURNING id
+    INSERT INTO courses (title, category, description, is_paid, price_amount, price_currency, access_type)
+    VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
   `;
 
   try {
@@ -21,6 +41,10 @@ const createCourseController = async (req, res) => {
       title,
       category,
       description,
+      normalizedIsPaid,
+      normalizedPriceAmount,
+      normalizedCurrency,
+      normalizedAccessType,
     ]);
 
     const courseId = courseResult.rows[0].id;
@@ -60,13 +84,17 @@ const getAllCoursesController = async (req, res) => {
       c.title,
       c.category,
       c.description,
+      c.is_paid,
+      c.price_amount,
+      c.price_currency,
+      c.access_type,
       c.created_at,
       c.updated_at,
       COUNT(cp.problem_id) as total_problems,
       COALESCE(SUM(cp.points), 0) as total_points
     FROM courses c
     LEFT JOIN course_problems cp ON c.id = cp.course_id
-    GROUP BY c.id, c.title, c.category, c.description, c.created_at, c.updated_at
+    GROUP BY c.id, c.title, c.category, c.description, c.is_paid, c.price_amount, c.price_currency, c.access_type, c.created_at, c.updated_at
     ORDER BY c.created_at DESC
   `;
 
@@ -95,6 +123,10 @@ const getCourseDetailsController = async (req, res) => {
       c.title,
       c.category,
       c.description,
+      c.is_paid,
+      c.price_amount,
+      c.price_currency,
+      c.access_type,
       c.created_at,
       c.updated_at
     FROM courses c
@@ -149,12 +181,32 @@ const getCourseDetailsController = async (req, res) => {
 
 const updateCourseController = async (req, res) => {
   const courseId = req.params.id;
-  const { title, category, description, problems } = req.body;
+  const {
+    title,
+    category,
+    description,
+    problems,
+    is_paid = false,
+    price_amount = 0,
+    price_currency = "eur",
+    access_type,
+  } = req.body;
+  const normalizedIsPaid = Boolean(is_paid);
+  const normalizedPriceAmount = normalizedIsPaid ? Number(price_amount) || 0 : 0;
+  const normalizedCurrency = (price_currency || "eur").toLowerCase();
+  const normalizedAccessType = access_type || (normalizedIsPaid ? "paid" : "free");
 
   if (!title || !category || !problems || problems.length === 0) {
     return res.status(400).json({
       success: false,
       message: "Please provide title, category, and at least one problem",
+    });
+  }
+
+  if (normalizedIsPaid && normalizedPriceAmount <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid price for paid courses",
     });
   }
 
@@ -165,14 +217,25 @@ const updateCourseController = async (req, res) => {
     // Update course details
     const updateCourseQuery = `
       UPDATE courses 
-      SET title = $1, category = $2, description = $3, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      SET title = $1,
+          category = $2,
+          description = $3,
+          is_paid = $4,
+          price_amount = $5,
+          price_currency = $6,
+          access_type = $7,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8
     `;
     
     const courseResult = await pool.query(updateCourseQuery, [
       title,
       category,
       description,
+      normalizedIsPaid,
+      normalizedPriceAmount,
+      normalizedCurrency,
+      normalizedAccessType,
       courseId,
     ]);
 

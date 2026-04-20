@@ -334,6 +334,36 @@ class CourseManagementService {
                 contents = contentsResult.rows;
             }
 
+            const legacyProblemsResult = await db.query(
+                `
+                SELECT
+                    cp.id,
+                    cp.problem_id,
+                    cp.points,
+                    cp.visibility,
+                    cp.created_at,
+                    p.title AS problem_title,
+                    p.description AS problem_description,
+                    p.difficulty,
+                    p.category AS problem_category,
+                    p.score
+                FROM public.course_problems cp
+                JOIN public.problem p ON p.id = cp.problem_id
+                WHERE cp.course_id = $1
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM public.course_content cc
+                    JOIN public.course_topics ct ON ct.id = cc.topic_id
+                    JOIN public.course_modules cm ON cm.id = ct.module_id
+                    WHERE cm.course_id = cp.course_id
+                      AND cc.problem_id = cp.problem_id
+                  )
+                ORDER BY cp.created_at ASC
+                `,
+                [courseId]
+            );
+            const legacyProblems = legacyProblemsResult.rows;
+
             // Get user progress if userId provided
             let progressMap = {};
             if (userId && (moduleIds.length > 0 || topicIds.length > 0)) {
@@ -353,37 +383,86 @@ class CourseManagementService {
             }
 
             // Build nested hierarchy
+            const hierarchyModules = modules.map((module) => {
+                const moduleProgress = progressMap[`${module.id}__`] || null;
+                return {
+                    ...module,
+                    progress: moduleProgress,
+                    topics: topics
+                        .filter((t) => t.module_id === module.id)
+                        .map((topic) => {
+                            const topicProgress =
+                                progressMap[`${module.id}_${topic.id}_`] || null;
+                            return {
+                                ...topic,
+                                progress: topicProgress,
+                                contents: contents
+                                    .filter((c) => c.topic_id === topic.id)
+                                    .map((content) => {
+                                        const contentProgress =
+                                            progressMap[
+                                                `${module.id}_${topic.id}_${content.id}`
+                                            ] || null;
+                                        return {
+                                            ...content,
+                                            progress: contentProgress,
+                                        };
+                                    }),
+                            };
+                        }),
+                };
+            });
+
+            if (legacyProblems.length > 0) {
+                hierarchyModules.push({
+                    id: `legacy-problems-${courseId}`,
+                    course_id: courseId,
+                    title: "Course Problems",
+                    description: "Problems added through the classic course builder.",
+                    display_order: hierarchyModules.length + 1,
+                    is_default: true,
+                    is_custom: false,
+                    role_permission: "user",
+                    status: "active",
+                    progress: null,
+                    topics: [
+                        {
+                            id: `legacy-topic-${courseId}`,
+                            module_id: `legacy-problems-${courseId}`,
+                            title: "Practice Set",
+                            description: "Curated coding problems for this course.",
+                            display_order: 1,
+                            difficulty_level: 2,
+                            status: "active",
+                            progress: null,
+                            contents: legacyProblems.map((problem, index) => ({
+                                id: `legacy-content-${problem.id}`,
+                                topic_id: `legacy-topic-${courseId}`,
+                                content_type: "problem",
+                                title: problem.problem_title,
+                                description: problem.problem_description,
+                                display_order: index + 1,
+                                problem_id: problem.problem_id,
+                                points: problem.points,
+                                is_mandatory: true,
+                                metadata: {
+                                    source: "course_problems",
+                                    course_problem_id: problem.id,
+                                    difficulty: problem.difficulty,
+                                    category: problem.problem_category,
+                                    score: problem.score,
+                                    visibility: problem.visibility,
+                                },
+                                progress: null,
+                            })),
+                        },
+                    ],
+                });
+            }
+
             const hierarchy = {
                 ...course,
-                modules: modules.map((module) => {
-                    const moduleProgress = progressMap[`${module.id}__`] || null;
-                    return {
-                        ...module,
-                        progress: moduleProgress,
-                        topics: topics
-                            .filter((t) => t.module_id === module.id)
-                            .map((topic) => {
-                                const topicProgress =
-                                    progressMap[`${module.id}_${topic.id}_`] || null;
-                                return {
-                                    ...topic,
-                                    progress: topicProgress,
-                                    contents: contents
-                                        .filter((c) => c.topic_id === topic.id)
-                                        .map((content) => {
-                                            const contentProgress =
-                                                progressMap[
-                                                    `${module.id}_${topic.id}_${content.id}`
-                                                ] || null;
-                                            return {
-                                                ...content,
-                                                progress: contentProgress,
-                                            };
-                                        }),
-                                };
-                            }),
-                    };
-                }),
+                modules: hierarchyModules,
             };
 
             return hierarchy;

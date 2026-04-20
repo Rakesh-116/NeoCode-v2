@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { FaArrowLeft } from "react-icons/fa";
 
 import Header from "../../Header.jsx";
 import Breadcrumb from "../../../Common/Breadcrumb.jsx";
@@ -16,6 +15,9 @@ const CreateCourse = () => {
     title: "",
     category: "",
     description: "",
+    is_paid: false,
+    price: "",
+    price_currency: "eur",
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,8 +41,11 @@ const CreateCourse = () => {
   }, []);
 
   const handleInputChange = (e, field) => {
-    setFormData({ ...formData, [field]: e.target.value });
+    const value = field === "is_paid" ? e.target.checked : e.target.value;
+    setFormData({ ...formData, [field]: value });
   };
+
+  const isPaidPriceInvalid = formData.is_paid && (!formData.price || Number(formData.price) <= 0);
 
   const toggleProblemSelection = (problem) => {
     const exists = selectedProblems.find((p) => p.id === problem.id);
@@ -52,7 +57,7 @@ const CreateCourse = () => {
   };
 
   const createCourse = async () => {
-    if (!formData.title || !formData.category || selectedProblems.length === 0) return;
+    if (!formData.title || !formData.category || selectedProblems.length === 0 || isPaidPriceInvalid) return;
 
     const token = Cookies.get("neo_code_jwt_token");
 
@@ -64,7 +69,16 @@ const CreateCourse = () => {
     try {
       await axios.post(
         `${API_BASE_URL}/api/admin/courses/create`,
-        { ...formData, problems: problemsWithPoints },
+        {
+          title: formData.title,
+          category: formData.category,
+          description: formData.description,
+          is_paid: formData.is_paid,
+          access_type: formData.is_paid ? "paid" : "free",
+          price_amount: formData.is_paid ? Math.round(Number(formData.price) * 100) : 0,
+          price_currency: formData.price_currency,
+          problems: problemsWithPoints,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       navigate("/admin/courses");
@@ -119,6 +133,42 @@ const CreateCourse = () => {
               </option>
             ))}
           </select>
+
+          <div className="border border-white/10 bg-black/30 rounded-lg p-4">
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <div>
+                <p className="text-white font-medium">Paid course</p>
+                <p className="text-white/50 text-sm">Require Stripe SEPA payment before students can open course content.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={formData.is_paid}
+                onChange={(e) => handleInputChange(e, "is_paid")}
+                className="h-5 w-5 accent-blue-500"
+              />
+            </label>
+
+            {formData.is_paid && (
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-3 mt-4">
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  placeholder="Course price, e.g. 19.99"
+                  value={formData.price}
+                  onChange={(e) => handleInputChange(e, "price")}
+                  className="w-full p-2 border bg-white/10 text-white border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <select
+                  value={formData.price_currency}
+                  onChange={(e) => handleInputChange(e, "price_currency")}
+                  className="w-full p-2 border bg-black text-white border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="eur">EUR</option>
+                </select>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Problem Selection */}
@@ -157,9 +207,9 @@ const CreateCourse = () => {
 
         <button
           onClick={createCourse}
-          disabled={!formData.title || !formData.category || selectedProblems.length === 0}
+          disabled={!formData.title || !formData.category || selectedProblems.length === 0 || isPaidPriceInvalid}
           className={`mt-6 w-full py-3 rounded-md font-medium transition-colors ${
-            !formData.title || !formData.category || selectedProblems.length === 0
+            !formData.title || !formData.category || selectedProblems.length === 0 || isPaidPriceInvalid
               ? "bg-gray-600 cursor-not-allowed"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}

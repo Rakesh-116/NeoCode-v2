@@ -3,9 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { ChevronDown, ChevronRight, CheckCircle, Clock, BookOpen, FileText, Video, Code, ExternalLink } from "lucide-react";
+import { toast } from "react-toastify";
 
 import Header from "../Header.jsx";
-import { useUser } from "../../../context/UserContext.jsx";
 
 /**
  * Hierarchical Course View
@@ -20,9 +20,9 @@ import { useUser } from "../../../context/UserContext.jsx";
 const CourseHierarchyView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userData } = useUser();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paymentRequired, setPaymentRequired] = useState(false);
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [expandedTopics, setExpandedTopics] = useState(new Set());
 
@@ -36,6 +36,7 @@ const CourseHierarchyView = () => {
 
   const fetchCourseHierarchy = async () => {
     try {
+      setPaymentRequired(false);
       const token = Cookies.get("neo_code_jwt_token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
@@ -59,8 +60,35 @@ const CourseHierarchyView = () => {
       }
     } catch (error) {
       console.error("Error fetching course hierarchy:", error);
+      if (error.response?.status === 403 && error.response?.data?.error === "payment_required") {
+        setCourse(error.response.data.course || null);
+        setPaymentRequired(true);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBuyCourse = async () => {
+    const token = Cookies.get("neo_code_jwt_token");
+    if (!token) {
+      navigate(`/login?next=/courses/${id}`);
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/payments/checkout-session`,
+        { courseId: id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      const message = error.response?.data?.error || "Unable to start checkout. Please try again.";
+      toast.error(message);
     }
   };
 
@@ -141,6 +169,13 @@ const CourseHierarchyView = () => {
     return content.progress?.status === "completed";
   };
 
+  const formatPrice = (amount, currency = "eur") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format((amount || 0) / 100);
+  };
+
   if (loading) {
     return (
       <div className="bg-black/95 min-h-screen">
@@ -148,6 +183,88 @@ const CourseHierarchyView = () => {
         <div className="pt-28 px-10 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           <p className="text-white/70 mt-2">Loading course...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentRequired) {
+    return (
+      <div className="bg-black/95 min-h-screen">
+        <Header />
+        <div className="pt-28 px-10 max-w-5xl mx-auto">
+          <nav className="mb-6">
+            <ol className="flex items-center space-x-2 text-sm">
+              <li>
+                <button
+                  onClick={() => navigate("/courses")}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  Courses
+                </button>
+              </li>
+              <li className="text-white/50">{">"}</li>
+              <li className="text-white/70">{course?.title || "Premium course"}</li>
+            </ol>
+          </nav>
+
+          <div className="bg-white/5 p-8 rounded-lg border border-white/10">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+              <div>
+                <span className="inline-flex px-3 py-1 bg-emerald-500/15 text-emerald-300 rounded-full border border-emerald-400/20 text-sm mb-5">
+                  Premium SEPA course
+                </span>
+                <h1 className="text-4xl font-bold text-white mb-3">{course?.title || "Purchase required"}</h1>
+                <p className="text-white/70 text-lg max-w-3xl">
+                  {course?.description || "Buy this course to unlock the full curriculum and track progress."}
+                </p>
+                <div className="flex flex-wrap items-center gap-4 mt-5 text-sm">
+                  {course?.category && (
+                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full">
+                      {course.category}
+                    </span>
+                  )}
+                  <span className="text-white/60">Content unlocks after payment confirmation</span>
+                </div>
+              </div>
+
+              <div className="w-full md:w-72 bg-black/30 border border-white/10 rounded-lg p-5">
+                <p className="text-white/50 text-sm mb-1">Course price</p>
+                <p className="text-3xl font-bold text-emerald-300 mb-4">
+                  {formatPrice(course?.price_amount, course?.price_currency)}
+                </p>
+                <button
+                  onClick={handleBuyCourse}
+                  className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium"
+                >
+                  Pay for this course
+                </button>
+                <p className="text-white/45 text-xs mt-3">
+                  Secure checkout with Stripe SEPA Direct Debit.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/5 p-12 rounded-lg text-center border border-white/10 mt-8">
+            <BookOpen className="w-12 h-12 text-white/30 mx-auto mb-4" />
+            <p className="text-white/70 text-lg">Course content is locked</p>
+            <p className="text-white/50 text-sm mt-2 mb-6">Complete payment to view modules, lessons, and problems.</p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                onClick={handleBuyCourse}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
+              >
+                Pay for this course
+              </button>
+              <button
+                onClick={() => navigate("/courses")}
+                className="px-6 py-2 bg-white/10 hover:bg-white/15 text-white rounded-lg"
+              >
+                Back to Courses
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

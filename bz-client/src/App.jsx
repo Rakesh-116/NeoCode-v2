@@ -22,6 +22,8 @@ import Interviews from "./components/pages/Interview/Interviews";
 import InterviewSetup from "./components/pages/Interview/InterviewSetup";
 import InterviewRoom from "./components/pages/Interview/InterviewRoom";
 import InterviewSummary from "./components/pages/Interview/InterviewSummary";
+import PaymentSuccess from "./components/pages/PaymentSuccess";
+import PaymentCancel from "./components/pages/PaymentCancel";
 
 import AdminRoute from "./components/pages/Auth/AdminRoute";
 import AdminDashboard from "./components/pages/Admin/AdminDashboard";
@@ -57,6 +59,8 @@ function App() {
                     <Route path="/savedsnippets" element={<SavedSnippets />} />
                     <Route path="/courses" element={<Courses />} />
                     <Route path="/courses/:id" element={<CourseHierarchyView />} />
+                    <Route path="/payment/success" element={<PaymentSuccess />} />
+                    <Route path="/payment/cancel" element={<PaymentCancel />} />
                     <Route path="/learning/profile" element={<LearningProfile />} />
 
                     {/* AI Voice Interview Routes */}

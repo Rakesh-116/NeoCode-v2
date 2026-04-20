@@ -132,8 +132,16 @@ const ProblemPage = () => {
     const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     try {
       let url = `${API_BASE_URL}/api/problem/get/${id}`;
+      const params = new URLSearchParams();
       if (submissionId) {
-        url += `?submission_id=${submissionId}`;
+        params.set("submission_id", submissionId);
+      }
+      if (courseId) {
+        params.set("courseId", courseId);
+      }
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
       }
 
       const response = await axios.get(url, {

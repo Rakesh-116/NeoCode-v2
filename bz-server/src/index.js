@@ -5,8 +5,10 @@ import cors from "cors";
 import { initializeLearningCore, healthCheck } from "./learning-core/index.js";
 import { initializeAI } from "./ai/index.js";
 import { initializeVoiceInterviewSystem, getVoiceInterviewHealth } from "./ai/voice-interview/index.js";
+import { paymentsRouter, stripeWebhookRouter } from "./routes/payments.routes.js";
 
 const app = express();
+app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhookRouter);
 app.use(express.json());
 app.use(cookieParser());
 const allowedOrigins = ["http://localhost:5173", "https://neocode.rakeshp.me"];
@@ -83,6 +85,7 @@ app.use("/api/learning", learningRoute);
 app.use("/api/ai", aiRoute);
 app.use("/api/interview", interviewRoute);
 app.use("/api/assistant", assistantRoute); // Voice assistant
+app.use("/api/payments", paymentsRouter);
 
 import usersRoute from "./routes/users.admin.routes.js";
 import problemsRoute from "./routes/problems.admin.routes.js";

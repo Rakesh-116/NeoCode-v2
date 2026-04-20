@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { RxCross2, RxArrowLeft } from "react-icons/rx";
+import { RxCross2 } from "react-icons/rx";
 
 import Header from "../../Header.jsx";
 import Breadcrumb from "../../../Common/Breadcrumb.jsx";
@@ -68,6 +68,13 @@ const AdminCourseDetails = () => {
     }
   };
 
+  const formatPrice = (amount, currency = "eur") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format((amount || 0) / 100);
+  };
+
   useEffect(() => {
     if (id) {
       fetchCourseDetails();
@@ -125,6 +132,15 @@ const AdminCourseDetails = () => {
                 <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full">
                   {course.category}
                 </span>
+                <span
+                  className={`px-3 py-1 rounded-full ${
+                    course.is_paid
+                      ? "bg-emerald-500/20 text-emerald-300"
+                      : "bg-white/10 text-white/70"
+                  }`}
+                >
+                  {course.is_paid ? `${formatPrice(course.price_amount, course.price_currency)} · SEPA` : "Free"}
+                </span>
                 <span className="text-white/60">
                   Created: {new Date(course.created_at).toLocaleDateString()}
                 </span>
@@ -153,7 +169,7 @@ const AdminCourseDetails = () => {
         <div className="bg-white/5 p-6 rounded-lg border border-white/10 mb-8">
           <h2 className="text-xl font-bold text-white mb-4">Course Overview</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-400">{course.total_problems}</div>
               <div className="text-white/70">Total Problems</div>
@@ -170,6 +186,12 @@ const AdminCourseDetails = () => {
                 }, 0).toFixed(1) || '0'}
               </div>
               <div className="text-white/70">Difficulty Score</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-400">
+                {course.is_paid ? formatPrice(course.price_amount, course.price_currency) : "Free"}
+              </div>
+              <div className="text-white/70">Access</div>
             </div>
           </div>
           

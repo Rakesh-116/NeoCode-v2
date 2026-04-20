@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { toast } from "react-toastify";
 
 import Header from "../Header.jsx";
 
@@ -20,13 +21,47 @@ const Courses = () => {
     try {
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
+      const token = Cookies.get("neo_code_jwt_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
-      const response = await axios.get(`${API_BASE_URL}/api/courses?${params}`);
+      const response = await axios.get(`${API_BASE_URL}/api/courses?${params}`, { headers });
       setCourses(response.data.courses || []);
     } catch (error) {
       console.error("Error fetching courses:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const formatPrice = (amount, currency = "eur") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format((amount || 0) / 100);
+  };
+
+  const handleBuyCourse = async (event, courseId) => {
+    event.stopPropagation();
+
+    const token = Cookies.get("neo_code_jwt_token");
+    if (!token) {
+      navigate(`/login?next=/courses/${courseId}`);
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/payments/checkout-session`,
+        { courseId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      const message = error.response?.data?.error || "Unable to start checkout. Please try again.";
+      toast.error(message);
     }
   };
 
@@ -66,8 +101,19 @@ const Courses = () => {
     <div className="bg-black/95 min-h-screen">
       <Header />
       <div className="pt-28 px-10">
-        <div className="mb-8">
-          <h1 className="text-white text-3xl font-bold mb-6">Available Courses</h1>
+        <div className="mb-8 max-w-5xl">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-white text-3xl font-bold mb-2">Available Courses</h1>
+              <p className="text-white/55">
+                Free tracks open instantly. Premium tracks use secure Stripe SEPA checkout and unlock after payment confirmation.
+              </p>
+            </div>
+            <div className="flex gap-2 text-sm">
+              <span className="px-3 py-1 rounded-md bg-blue-500/15 text-blue-300 border border-blue-400/20">Free</span>
+              <span className="px-3 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">SEPA paid</span>
+            </div>
+          </div>
           
           {/* Search Filter */}
           <div className="mb-6">
@@ -93,16 +139,29 @@ const Courses = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course) => (
+            {courses.map((course) => {
+              const isUnlocked = Boolean(course.user_has_access);
+              return (
               <div
                 key={course.id}
                 className="p-6 border border-white/30 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer group"
                 onClick={() => navigate(`/courses/${course.id}`)}
               >
                 <div className="mb-4">
-                  <h2 className="text-xl font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                    {course.title}
-                  </h2>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h2 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors">
+                      {course.title}
+                    </h2>
+                    <span
+                      className={`shrink-0 px-2 py-1 rounded-md text-xs border ${
+                        course.is_paid
+                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/20"
+                          : "bg-blue-500/15 text-blue-300 border-blue-400/20"
+                      }`}
+                    >
+                      {course.is_paid ? (isUnlocked ? "Paid" : "Premium") : "Free"}
+                    </span>
+                  </div>
                 </div>
                 
                 <p className="text-white/70 mb-4 line-clamp-3">
@@ -114,14 +173,28 @@ const Courses = () => {
                     <span className="text-white/60">
                       {course.total_problems} Problems
                     </span>
+                    {course.is_paid && (
+                      <span className="px-2 py-1 bg-emerald-500/15 text-emerald-300 rounded-md border border-emerald-400/20 font-medium">
+                        {formatPrice(course.price_amount, course.price_currency)}
+                      </span>
+                    )}
                   </div>
                   
-                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors">
-                    View Course
-                  </button>
+                  {course.is_paid && !isUnlocked ? (
+                    <button
+                      onClick={(event) => handleBuyCourse(event, course.id)}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Pay with SEPA
+                    </button>
+                  ) : (
+                    <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors">
+                      View Course
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

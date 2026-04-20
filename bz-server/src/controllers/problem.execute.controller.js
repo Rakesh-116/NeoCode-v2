@@ -2,6 +2,7 @@ import { pool } from "../database/connect.db.js";
 import { execute } from "../execution/index.js";
 import EvaluationService from "../learning-core/services/evaluation.service.js";
 import CourseIntegrationService from "../services/courseIntegration.service.js";
+import { canAccessCourse } from "../services/courseAccess.service.js";
 
 import generateUuid from "../constants/generateUuid.js";
 
@@ -40,10 +41,29 @@ const submitProblemController = async (req, res) => {
         const { problemId, sourceCode, language, courseId } = req.body;
         const userId = req.userId;
 
-        // First, check if the problem exists and is not hidden
-        const checkProblemQuery = "SELECT id FROM problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)";
+        let checkProblemResult;
+        if (courseId) {
+            const hasCourseAccess = await canAccessCourse(userId, courseId);
+            if (!hasCourseAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Purchase this course to submit this problem",
+                });
+            }
 
-        const checkProblemResult = await pool.query(checkProblemQuery, [problemId]);
+            checkProblemResult = await pool.query(
+                `SELECT p.id
+                 FROM problem p
+                 JOIN course_problems cp ON cp.problem_id = p.id
+                 WHERE p.id = $1 AND cp.course_id = $2`,
+                [problemId, courseId],
+            );
+        } else {
+            checkProblemResult = await pool.query(
+                "SELECT id FROM problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)",
+                [problemId],
+            );
+        }
 
         if (checkProblemResult.rowCount === 0) {
             return res.status(404).json({
@@ -497,14 +517,33 @@ const submitProblemController = async (req, res) => {
 };
 
 const getExpectedOutputController = async (req, res) => {
-    const { problemId, input } = req.body;
+    const { problemId, input, courseId } = req.body;
     const userId = req.userId;
 
-    const getSolutionQuery =
-        "SELECT solution, solution_language FROM problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)";
-
     try {
-        const getSolutionResult = await pool.query(getSolutionQuery, [problemId]);
+        let getSolutionResult;
+        if (courseId) {
+            const hasCourseAccess = await canAccessCourse(userId, courseId);
+            if (!hasCourseAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Purchase this course to access expected output",
+                });
+            }
+
+            getSolutionResult = await pool.query(
+                `SELECT p.solution, p.solution_language
+                 FROM problem p
+                 JOIN course_problems cp ON cp.problem_id = p.id
+                 WHERE p.id = $1 AND cp.course_id = $2`,
+                [problemId, courseId],
+            );
+        } else {
+            getSolutionResult = await pool.query(
+                "SELECT solution, solution_language FROM problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)",
+                [problemId],
+            );
+        }
 
         if (getSolutionResult.rowCount === 0) {
             return res.status(404).json({

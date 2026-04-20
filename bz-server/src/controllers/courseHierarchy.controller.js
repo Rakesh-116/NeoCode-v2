@@ -14,6 +14,7 @@
 
 import { pool } from "../database/connect.db.js";
 import CourseManagementService from "../services/courseManagement.service.js";
+import { canAccessCourse } from "../services/courseAccess.service.js";
 
 const courseService = new CourseManagementService();
 
@@ -225,9 +226,37 @@ const addContentController = async (req, res) => {
  */
 const getCourseHierarchyController = async (req, res) => {
     const { courseId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId;
 
     try {
+        const hasAccess = await canAccessCourse(userId, courseId);
+        if (!hasAccess) {
+            const courseResult = await pool.query(
+                `SELECT id, title, category, description, is_paid, price_amount, price_currency, access_type
+                 FROM public.courses
+                 WHERE id = $1`,
+                [courseId]
+            );
+
+            if (courseResult.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Course not found",
+                });
+            }
+
+            return res.status(403).json({
+                success: false,
+                error: "payment_required",
+                message: "Purchase this course to access content",
+                course: {
+                    ...courseResult.rows[0],
+                    modules: [],
+                    user_has_access: false,
+                },
+            });
+        }
+
         const hierarchy = await courseService.getCourseHierarchy(
             courseId,
             userId
@@ -235,7 +264,10 @@ const getCourseHierarchyController = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            course: hierarchy,
+            course: {
+                ...hierarchy,
+                user_has_access: true,
+            },
         });
     } catch (error) {
         console.error(

@@ -1,4 +1,5 @@
 import { pool } from "../database/connect.db.js";
+import { canAccessCourse } from "../services/courseAccess.service.js";
 
 const getAllProblemsController = async (req, res) => {
   const { categories, difficulty, search } = req.query;
@@ -51,14 +52,34 @@ const getAllProblemsController = async (req, res) => {
 
 const getProblemDetailsController = async (req, res) => {
   const problemId = req.params.id;
-  const { submission_id } = req.query;
+  const { submission_id, courseId } = req.query;
+  const userId = req.userId;
 
   try {
-    // Check if problem exists and is not hidden for non-admin users
-    const problemResult = await pool.query(
-      "SELECT * FROM Problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)",
-      [problemId]
-    );
+    let problemResult;
+
+    if (courseId) {
+      const hasCourseAccess = await canAccessCourse(userId, courseId);
+      if (!hasCourseAccess) {
+        return res.status(403).json({
+          success: false,
+          message: "Purchase this course to access this problem",
+        });
+      }
+
+      problemResult = await pool.query(
+        `SELECT p.*
+         FROM Problem p
+         JOIN course_problems cp ON cp.problem_id = p.id
+         WHERE p.id = $1 AND cp.course_id = $2`,
+        [problemId, courseId]
+      );
+    } else {
+      problemResult = await pool.query(
+        "SELECT * FROM Problem WHERE id = $1 AND (hidden IS NULL OR hidden = false)",
+        [problemId]
+      );
+    }
 
     if (problemResult.rowCount === 0) {
       return res
