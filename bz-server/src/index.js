@@ -91,12 +91,14 @@ import usersRoute from "./routes/users.admin.routes.js";
 import problemsRoute from "./routes/problems.admin.routes.js";
 import adminBlogsRoute from "./routes/blogs.admin.routes.js";
 import coursesRoute from "./routes/courses.admin.routes.js";
+import adminEmailsRoute from "./routes/adminEmails.routes.js";
 
 // Admin Routes
 app.use("/api/admin/users", usersRoute);
 app.use("/api/admin/problems", problemsRoute);
 app.use("/api/admin/blogs", adminBlogsRoute);
 app.use("/api/admin/courses", coursesRoute);
+app.use("/api/admin/emails", adminEmailsRoute);
 // app.use("/api/admin/submissions", usersRoute);
 
 connection();

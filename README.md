@@ -113,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File setup-voice-interview.ps1 -SkipWhisper
 
 ```bash
 # Check system health
-curl http://localhost:5000/api/interview/health
+curl http://localhost:3000/api/interview/health
 
 # Start interview
 POST /api/interview/start
@@ -158,6 +158,9 @@ GET  /api/interview/smart-review/stats
 - Course-specific submissions and analytics
 - **Skill-based progression** - Skills learned carry across courses
 - Points-based completion system
+- Paid course support with Stripe Checkout and SEPA Direct Debit
+- Course access gating: paid course content and course-only problems stay locked until enrollment is active
+- Course-only/hidden AI interview problems can be opened from paid courses after access is granted
 
 ### 📊 **Advanced Analytics**
 
@@ -185,6 +188,18 @@ GET  /api/interview/smart-review/stats
 - Problem CRUD with category organization
 - Submission tracking and analytics
 - User management dashboard
+- Admin email console for sending manual Unosend messages to registered users
+
+### Payments & Email
+
+- Stripe Checkout integration for paid course purchases using SEPA Direct Debit
+- Stripe webhook processing for `payment_intent.succeeded` and SEPA async success events
+- Idempotent webhook tracking through `stripe_webhook_events`
+- Automatic course enrollment after successful payment
+- Unosend payment receipt emails after checkout confirmation
+- Email delivery audit trail through `email_logs`
+- Admin manual email sender at `/admin/emails`
+- Payment result pages at `/payment/success` and `/payment/cancel`
 
 ---
 
@@ -207,6 +222,8 @@ GET  /api/interview/smart-review/stats
 - **JWT** authentication
 - **Docker** for code execution
 - **Multer** for file uploads
+- **Stripe** for SEPA Direct Debit checkout
+- **Unosend** for transactional and admin emails
 
 ### AI/LLM Integration
 
@@ -221,6 +238,7 @@ GET  /api/interview/smart-review/stats
 - **Container reuse** for performance
 - **PostgreSQL** with migrations
 - Environment-based configuration
+- Stripe CLI for local webhook forwarding
 
 ---
 
@@ -337,18 +355,27 @@ Dashboard shows unified skill progress across ALL courses
 
     ```env
     # Database
-    POSTGRES_USER=postgres
-    POSTGRES_PASSWORD=your_password
-    POSTGRES_DB=Neocode-v2
-    POSTGRES_HOST=localhost
-    POSTGRES_PORT=5432
+    DB_USER=postgres
+    DB_PASSWORD=your_password
+    DB_NAME=Neocode-v2
+    DB_HOST=localhost
+    DB_PORT=5432
 
     # JWT
-    JWT_SECRET=your_super_secret_key_here
+    JWT_SECRET_KEY=your_super_secret_key_here
 
     # Server
-    PORT=5000
+    PORT=3000
     CLIENT_URL=http://localhost:5173
+    SERVER_URL=http://localhost:3000
+
+    # Stripe SEPA checkout
+    STRIPE_SECRET_KEY=sk_test_your_key
+    STRIPE_WEBHOOK_SECRET=whsec_your_cli_or_dashboard_secret
+
+    # Unosend email
+    UNOSEND_API_KEY=un_your_key
+    UNOSEND_FROM=NeoCode <billing@yourdomain.com>
 
     # AI Configuration
     LLM_PROVIDER=ollama  # or 'openai', 'gemini'
@@ -366,7 +393,15 @@ Dashboard shows unified skill progress across ALL courses
     Create `.env` in `bz-client/`:
 
     ```env
-    VITE_BACKEND_URL=http://localhost:5000
+    VITE_BACKEND_URL=http://localhost:3000
+    ```
+
+    For Unosend, verify the sending domain before expecting emails to reach inboxes. Required DNS records usually include DKIM on `unosend._domainkey`, SPF on `send`, MX on `send`, and a recommended DMARC record such as:
+
+    ```txt
+    Type: TXT
+    Name: _dmarc
+    Content: v=DMARC1; p=none; rua=mailto:you@yourdomain.com
     ```
 
 4. **Docker Setup for Code Execution**
@@ -427,9 +462,18 @@ Dashboard shows unified skill progress across ALL courses
     npm run dev
     ```
 
+    For local Stripe webhook testing, install and log in to the Stripe CLI, then run:
+
+    ```bash
+    stripe listen --forward-to localhost:3000/api/webhooks/stripe
+    ```
+
+    Copy the printed `whsec_...` value into `STRIPE_WEBHOOK_SECRET` and restart the backend. Use Stripe test IBAN `DE89370400440532013000` for SEPA checkout testing.
+
 6. **Access the application**
     - Frontend: http://localhost:5173
-    - Backend: http://localhost:5000
+    - Backend: http://localhost:3000
+    - Admin email tool: http://localhost:5173/admin/emails
 
 ---
 
@@ -455,7 +499,35 @@ psql -U postgres -d Neocode-v2 -f database/migrations/002_ai_mentor_system.sql
 
 # Migration 2: Skill catalog (15+ skills)
 psql -U postgres -d Neocode-v2 -f database/migrations/003_seed_course_skill_mappings.sql
+
+# Migration 11: Paid courses, Stripe payments, enrollments, and email logs
+psql -U postgres -d Neocode-v2 -f src/database/migrations/011_course_payments.sql
 ```
+
+### Paid Course Payment Flow
+
+Paid courses use a Stripe-hosted SEPA Direct Debit checkout. The frontend posts the selected `courseId` to `/api/payments/checkout-session`, the backend creates a Stripe Checkout Session, and the user is redirected to Stripe for IBAN entry and mandate consent.
+
+After Stripe confirms the payment through the webhook:
+
+1. `payments` is updated to `succeeded`.
+2. `course_enrollments` is created or reactivated.
+3. Paid course hierarchy and course-only problems become accessible to that user.
+4. Unosend sends a payment receipt email.
+5. `email_logs` records whether the receipt or admin message was sent or failed.
+
+The webhook route must be mounted before `express.json()` because Stripe signature verification requires the raw request body.
+
+### Email Deliverability Notes
+
+NeoCode uses Unosend for both automatic payment receipts and manual admin emails. Unosend may show an email as `Delivered` once the recipient mail server accepts it, but mailbox placement can still be Inbox, Promotions, Spam, All Mail, or Trash depending on the recipient provider.
+
+For local testing:
+
+- Verify the sender domain in Unosend before sending.
+- Use `UNOSEND_FROM=NeoCode <billing@yourdomain.com>`.
+- Check `email_logs` for `sent` or `failed` rows.
+- Search Gmail with `in:anywhere from:billing@yourdomain.com` if delivered mail is not visible.
 
 ### Map Your Courses to Skills
 
@@ -486,6 +558,7 @@ See `bz-server/database/migrations/HELPER_map_courses_to_skills.sql` for detaile
 - **13 Legacy**: users, problems, courses, submissions, blogs, etc.
 - **8 Learning OS**: learning_profiles, training_plans, evaluations, etc.
 - **12 AI Mentor**: user_skills, user_goals, validations, skill_catalog, roadmap_templates, etc.
+- **Payments/Email**: course_enrollments, payments, stripe_webhook_events, email_logs
 
 **Key Views:**
 
@@ -738,16 +811,28 @@ NeoCode-v2/
 
 ```bash
 # Test problem submission
-curl -X POST http://localhost:5000/api/problems/submit \
+curl -X POST http://localhost:3000/api/problem/submit \
   -H "Authorization: Bearer YOUR_JWT" \
   -d '{"problemId":"...", "code":"...", "language":"python"}'
 
 # Test dashboard
-curl http://localhost:5000/api/mentor/dashboard \
+curl http://localhost:3000/api/mentor/dashboard \
   -H "Authorization: Bearer YOUR_JWT"
 
 # Test skill update (solve any problem)
 # Should see skill confidence increase
+
+# Create a Stripe SEPA checkout session for a paid course
+curl -X POST http://localhost:3000/api/payments/checkout-session \
+  -H "Authorization: Bearer YOUR_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"courseId":"COURSE_UUID"}'
+
+# Send a manual admin email through Unosend
+curl -X POST http://localhost:3000/api/admin/emails/send \
+  -H "Authorization: Bearer ADMIN_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"USER_UUID","subject":"Hi","message":"Testing NeoCode email."}'
 ```
 
 ---
@@ -780,6 +865,11 @@ curl http://localhost:5000/api/mentor/dashboard \
 ### Phase 4: Advanced Features (In Progress)
 - [x] Smart Review (spaced repetition for weak concepts)
 - [x] Coding interview problems with code + speech validation
+- [x] Paid course checkout with Stripe SEPA Direct Debit
+- [x] Paid course access gating and enrollment tracking
+- [x] Unosend payment receipt emails
+- [x] Admin manual email console
+- [x] Course-only hidden problem access for enrolled users
 
 - [ ] Skill assessments (auto-generated quizzes)
 - [ ] Project-based validations

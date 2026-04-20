@@ -158,6 +158,8 @@ export async function stripeWebhook(req, res) {
 }
 
 async function sendReceiptAndLog({ userId, courseId, paymentId, paymentIntentId }) {
+    let recipient = null;
+
     try {
         const userResult = await pool.query("SELECT email, username FROM users WHERE id = $1", [userId]);
         const courseResult = await pool.query("SELECT title, price_amount, price_currency FROM courses WHERE id = $1", [
@@ -170,6 +172,8 @@ async function sendReceiptAndLog({ userId, courseId, paymentId, paymentIntentId 
 
         const user = userResult.rows[0];
         const course = courseResult.rows[0];
+        recipient = user.email;
+
         const emailId = await sendPaymentReceiptEmail({
             toEmail: user.email,
             userName: user.username,
@@ -192,9 +196,9 @@ async function sendReceiptAndLog({ userId, courseId, paymentId, paymentIntentId 
         console.error("[payments.sendReceiptAndLog]", err.message);
 
         await pool.query(
-            `INSERT INTO email_logs (user_id, payment_id, email_type, status, error_message)
-             VALUES ($1, $2, 'payment_receipt', 'failed', $3)`,
-            [userId, paymentId, err.message]
+            `INSERT INTO email_logs (user_id, payment_id, email_type, recipient, status, error_message)
+             VALUES ($1, $2, 'payment_receipt', $3, 'failed', $4)`,
+            [userId, paymentId, recipient, err.message]
         );
     }
 }

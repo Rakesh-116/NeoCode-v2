@@ -33,6 +33,12 @@ const AdminDashboard = () => {
       buttonText: "Go to Courses",
       onClick: () => navigate("/admin/courses"),
     },
+    {
+      title: "Send Emails",
+      description: "Send a manual Unosend message to registered users.",
+      buttonText: "Open Email Tool",
+      onClick: () => navigate("/admin/emails"),
+    },
     // {
     //   title: "Review Submissions",
     //   description: "Check user code submissions and provide feedback.",

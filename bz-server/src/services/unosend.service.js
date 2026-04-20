@@ -62,3 +62,33 @@ export async function sendPaymentReceiptEmail({ toEmail, userName, courseName, a
 
     return data.id;
 }
+
+export async function sendAdminMessageEmail({ toEmail, userName, subject, message }) {
+    const safeUserName = escapeHtml(userName || "there");
+    const safeMessage = escapeHtml(message).replace(/\r?\n/g, "<br />");
+
+    const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px; background: #ffffff;">
+      <h1 style="font-size: 22px; color: #111;">${escapeHtml(subject)}</h1>
+      <p style="color: #555;">Hi ${safeUserName},</p>
+      <div style="color: #555; line-height: 1.6;">${safeMessage}</div>
+      <p style="margin-top: 32px; font-size: 12px; color: #aaa;">NeoCode</p>
+    </div>
+  `;
+
+    const { data, error } = await unosend.emails.send({
+        from: process.env.UNOSEND_FROM,
+        to: [toEmail],
+        subject,
+        html,
+        text: `Hi ${userName || "there"},\n\n${message}\n\nNeoCode`,
+        tags: [{ name: "type", value: "admin_message" }],
+        tracking: { open: true, click: true },
+    });
+
+    if (error) {
+        throw new Error(`Unosend error: ${error.message}`);
+    }
+
+    return data.id;
+}

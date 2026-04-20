@@ -38,6 +38,7 @@ import EditCourse from "./components/pages/Admin/Courses/EditCourse";
 import AdminUserAnalysis from "./components/pages/Admin/AdminUserAnalysis";
 import AdminProblemManagement from "./components/pages/Admin/Problems/AdminProblemManagement";
 import EditProblem from "./components/pages/Admin/Problems/EditProblem";
+import AdminEmails from "./components/pages/Admin/AdminEmails";
 import AiSupportChat from "./components/Common/AiSupportChat";
 import VoiceAssistant from "./components/Common/VoiceAssistant";
 
@@ -82,6 +83,7 @@ function App() {
                         <Route path="/admin/newcourse" element={<CreateCourse />} />
                         <Route path="/admin/users" element={<AdminUsers />} />
                         <Route path="/admin/users/analysis/:userId" element={<AdminUserAnalysis />} />
+                        <Route path="/admin/emails" element={<AdminEmails />} />
                     </Route>
                     <Route path="*" element={<NotFound />} />
                 </Routes>
